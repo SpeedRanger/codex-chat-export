@@ -83,6 +83,12 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 
 See [SECURITY.md](SECURITY.md) for disclosure guidance and operational notes.
 
+## Free and optional support
+
+This tool is free. There are no paid tiers, telemetry, locked export formats, or gated features.
+
+If it saves you time, the best support right now is to star the repo, share it with other Codex users, and open clear issues when something breaks. A lightweight maintainer support link will be added once configured.
+
 ## Testing
 
 The test suite covers:
