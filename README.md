@@ -73,6 +73,8 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - Unnamed sessions get a derived title from the first real user turn.
 - Commentary-phase assistant messages are deduplicated against `event_msg.agent_message`.
 
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full companion-layer decision and phased direction.
+
 ## Security
 
 - No network access is required to export local chats.
