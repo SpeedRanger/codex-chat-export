@@ -1,0 +1,42 @@
+{
+  "name": "codex-chat-export",
+  "version": "0.1.0",
+  "description": "Export full Codex CLI chats from local rollout JSONL into clean markdown, text, or JSON.",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "codex-chat-export": "./scripts/codex-chat-export.mjs"
+  },
+  "files": [
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "test": "node --test scripts/codex-chat-export.test.mjs",
+    "export:last": "node scripts/codex-chat-export.mjs --last",
+    "export:list": "node scripts/codex-chat-export.mjs --list --limit 20"
+  },
+  "keywords": [
+    "codex",
+    "cli",
+    "chat",
+    "export",
+    "markdown",
+    "json"
+  ],
+  "author": "AKR",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpeedRanger/codex-chat-export.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SpeedRanger/codex-chat-export/issues"
+  },
+  "homepage": "https://github.com/SpeedRanger/codex-chat-export#readme"
+}

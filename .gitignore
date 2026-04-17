@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+*.tgz
+tmp/
+.tmp/
+exports/
+fixtures/
