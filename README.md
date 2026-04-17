@@ -7,6 +7,7 @@ It reads Codex session rollouts directly from `~/.codex/sessions` and `~/.codex/
 - readable Markdown for sharing
 - plain text for lightweight copying
 - JSON for full-fidelity tooling and automation
+- export bundles with Markdown, JSON, and manifest files
 
 ## Why this exists
 
@@ -45,6 +46,7 @@ node scripts/codex-chat-export.mjs --last
 ```bash
 codex-chat-export --last
 codex-chat-export --current --format md --output current-chat.md
+codex-chat-export --last --bundle ./codex-chat-export
 codex-chat-export --list --limit 20
 codex-chat-export --match "billing bug" --format json --output billing-session.json
 codex-chat-export --id 019d9522-100c-70f3-8a41-6e70be1b917f --include-bootstrap
@@ -56,6 +58,7 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - `--home PATH`: override Codex home, defaults to `~/.codex`
 - `--format md|txt|json`: output format, defaults to `md`
 - `--output FILE`: write to a file instead of stdout
+- `--bundle DIR`: write `chat.md`, `chat.json`, and `manifest.json` to a directory
 - `--last`: export the most recently updated session
 - `--current`: export the session referenced by `CODEX_THREAD_ID`
 - `--id THREAD_ID`: export a specific session id
@@ -103,6 +106,7 @@ The test suite covers:
 - archived session behavior
 - current-thread export via `CODEX_THREAD_ID`
 - file output
+- bundle output
 - invalid format handling
 - bootstrap rendering gates
 

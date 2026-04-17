@@ -36,6 +36,46 @@ async function writeOutput(outputPath, content) {
   await fs.writeFile(outputPath, content, "utf8");
 }
 
+function buildBundleManifest(document) {
+  return {
+    version: 1,
+    exportedAt: document.exportedAt,
+    thread: document.thread,
+    stats: document.stats,
+    source: document.source,
+    files: [
+      {
+        path: "chat.md",
+        format: "md",
+        description: "Human-readable Markdown conversation export.",
+      },
+      {
+        path: "chat.json",
+        format: "json",
+        description: "Full-fidelity structured export including raw rollout lines.",
+      },
+      {
+        path: "manifest.json",
+        format: "json",
+        description: "Bundle metadata and file inventory.",
+      },
+    ],
+  };
+}
+
+async function writeBundle(bundleDir, document, options) {
+  await fs.mkdir(bundleDir, { recursive: true });
+  await Promise.all([
+    fs.writeFile(path.join(bundleDir, "chat.md"), `${renderMarkdown(document, options)}\n`, "utf8"),
+    fs.writeFile(path.join(bundleDir, "chat.json"), `${JSON.stringify(document, null, 2)}\n`, "utf8"),
+    fs.writeFile(
+      path.join(bundleDir, "manifest.json"),
+      `${JSON.stringify(buildBundleManifest(document), null, 2)}\n`,
+      "utf8",
+    ),
+  ]);
+}
+
 async function resolveTargetSession(options) {
   if (options.current) {
     const threadId = process.env.CODEX_THREAD_ID;
@@ -91,6 +131,7 @@ async function main() {
       home: { type: "string" },
       format: { type: "string", default: "md" },
       output: { type: "string" },
+      bundle: { type: "string" },
       last: { type: "boolean", default: false },
       current: { type: "boolean", default: false },
       id: { type: "string" },
@@ -118,6 +159,7 @@ async function main() {
     home,
     format,
     output: values.output ? path.resolve(values.output) : null,
+    bundle: values.bundle ? path.resolve(values.bundle) : null,
     last: Boolean(values.last),
     current: Boolean(values.current),
     id: values.id ? String(values.id).trim() : null,
@@ -127,6 +169,10 @@ async function main() {
     includeArchived: Boolean(values["include-archived"]),
     includeBootstrap: Boolean(values["include-bootstrap"]),
   };
+
+  if (options.output && options.bundle) {
+    throw new Error("Use either --output FILE or --bundle DIR, not both.");
+  }
 
   if (!options.id && !options.match && positionalQuery) {
     if (isUuid(positionalQuery)) {
@@ -152,6 +198,12 @@ async function main() {
   const document = await buildExportDocument(home, target.rolloutPath, {
     includeBootstrap: options.includeBootstrap,
   });
+
+  if (options.bundle) {
+    await writeBundle(options.bundle, document, options);
+    process.stdout.write(`${options.bundle}\n`);
+    return;
+  }
 
   let content;
   if (format === "json") {

@@ -58,7 +58,7 @@ The clean long-term model is an export bundle:
 - `manifest.json` for metadata
 - optional `assets/` later for images and files
 
-The current CLI starts with single-file exports for simplicity, but JSON remains the full-fidelity format and bundle mode is the natural next expansion.
+The CLI supports this with `--bundle DIR`. Single-file exports remain the fastest path for copying or scripting, while bundle mode is the richer artifact for archiving, sharing with collaborators, or feeding downstream tools.
 
 ## Source Of Truth
 

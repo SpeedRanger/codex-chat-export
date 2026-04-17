@@ -442,3 +442,51 @@ test("CLI rejects invalid formats with a clear error", async () => {
     /Unsupported format "html"/,
   );
 });
+
+test("CLI writes bundle exports with markdown, JSON, and manifest files", async () => {
+  const fixture = await createFixtureHome();
+  const bundlePath = path.join(fixture.home, "bundle-export");
+
+  const { stdout } = await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--bundle",
+    bundlePath,
+  ]);
+
+  assert.equal(stdout.trim(), bundlePath);
+
+  const chatMarkdown = await fs.readFile(path.join(bundlePath, "chat.md"), "utf8");
+  const chatJson = JSON.parse(await fs.readFile(path.join(bundlePath, "chat.json"), "utf8"));
+  const manifest = JSON.parse(await fs.readFile(path.join(bundlePath, "manifest.json"), "utf8"));
+
+  assert.match(chatMarkdown, /# Codex Chat Export/);
+  assert.match(chatMarkdown, /Assistant response\./);
+  assert.equal(chatJson.thread.threadId, fixture.activeThreadId);
+  assert.equal(manifest.thread.threadId, fixture.activeThreadId);
+  assert.deepEqual(
+    manifest.files.map((file) => file.path),
+    ["chat.md", "chat.json", "manifest.json"],
+  );
+});
+
+test("CLI rejects using --output and --bundle together", async () => {
+  const fixture = await createFixtureHome();
+
+  await assert.rejects(
+    execFileAsync(process.execPath, [
+      CLI_PATH,
+      "--home",
+      fixture.home,
+      "--last",
+      "--output",
+      path.join(fixture.home, "chat.md"),
+      "--bundle",
+      path.join(fixture.home, "bundle"),
+    ]),
+    /Use either --output FILE or --bundle DIR, not both/,
+  );
+});
