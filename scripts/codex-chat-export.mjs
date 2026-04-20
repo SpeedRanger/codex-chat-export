@@ -12,6 +12,7 @@ import {
   isUuid,
   listSessions,
   pickMatchingSession,
+  redactExportDocument,
   renderMarkdown,
   renderText,
   usageText,
@@ -43,6 +44,9 @@ function buildBundleManifest(document) {
     thread: document.thread,
     stats: document.stats,
     source: document.source,
+    redaction: document.redaction ?? {
+      enabled: false,
+    },
     files: [
       {
         path: "chat.md",
@@ -140,6 +144,7 @@ async function main() {
       limit: { type: "string", default: "20" },
       "include-archived": { type: "boolean", default: false },
       "include-bootstrap": { type: "boolean", default: false },
+      redact: { type: "boolean", default: false },
     },
   });
 
@@ -168,6 +173,7 @@ async function main() {
     limit: parseInteger(values.limit, 20),
     includeArchived: Boolean(values["include-archived"]),
     includeBootstrap: Boolean(values["include-bootstrap"]),
+    redact: Boolean(values.redact),
   };
 
   if (options.output && options.bundle) {
@@ -195,9 +201,15 @@ async function main() {
   }
 
   const target = await resolveTargetSession(options);
-  const document = await buildExportDocument(home, target.rolloutPath, {
+  const rawDocument = await buildExportDocument(home, target.rolloutPath, {
     includeBootstrap: options.includeBootstrap,
   });
+  const document = options.redact
+    ? redactExportDocument(rawDocument, {
+        codexHome: home,
+        homeDir: process.env.USERPROFILE ?? process.env.HOME,
+      })
+    : rawDocument;
 
   if (options.bundle) {
     await writeBundle(options.bundle, document, options);

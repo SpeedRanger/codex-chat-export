@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a product improvement or export workflow.
+title: "Feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What export or Codex session workflow is painful today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What should codex-chat-export do?
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - CLI ergonomics
+        - Export format
+        - Bundle artifacts
+        - Redaction or security
+        - Performance
+        - Codex compatibility
+        - Documentation
+        - Other
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workaround or different design you considered?

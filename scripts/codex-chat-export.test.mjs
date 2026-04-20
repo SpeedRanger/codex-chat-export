@@ -16,6 +16,8 @@ import {
   listSessions,
   parseTimestampUuidFromFilename,
   pickMatchingSession,
+  redactExportDocument,
+  redactString,
   renderMarkdown,
   stripUserMessagePrefix,
 } from "./codex-chat-export-lib.mjs";
@@ -120,7 +122,11 @@ function buildFixtureLines(threadId, userPrompt, assistantText = "Done.", option
       payload: {
         type: "function_call",
         name: "exec_command",
-        arguments: JSON.stringify({ cmd: "dir", cwd: options.cwd ?? "C:\\fixture" }),
+        arguments: JSON.stringify({
+          cmd: "dir",
+          cwd: options.cwd ?? "C:\\fixture",
+          api_key: options.secret ?? "not-a-real-secret",
+        }),
       },
     },
     {
@@ -138,7 +144,10 @@ function buildFixtureLines(threadId, userPrompt, assistantText = "Done.", option
       payload: {
         type: "message",
         role: "assistant",
-        content: [{ type: "output_text", text: assistantText }],
+        content: [{
+          type: "output_text",
+          text: options.secret ? `${assistantText} token=${options.secret}` : assistantText,
+        }],
       },
     },
     {
@@ -171,7 +180,9 @@ async function createFixtureHome() {
 
   await writeRollout(
     path.join(home, "sessions", "2026", "04", "16", makeRolloutFilename("2026-04-16T12-42-10", activeThreadId)),
-    buildFixtureLines(activeThreadId, "Export my Codex chat cleanly.", "Assistant response."),
+    buildFixtureLines(activeThreadId, "Export my Codex chat cleanly.", "Assistant response.", {
+      secret: "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",
+    }),
   );
   await writeRollout(
     path.join(home, "sessions", "2026", "04", "15", makeRolloutFilename("2026-04-15T10-08-43", namedThreadId)),
@@ -311,6 +322,21 @@ test("formatStructuredValue preserves objects and pretty-prints JSON strings", (
   });
 });
 
+test("redactString removes common secrets and local paths", () => {
+  const text =
+    "api_key=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890 cwd=C:\\Users\\AKR\\.codex token=gho_abcdefghijklmnopqrstuvwxyz1234567890";
+  const redacted = redactString(text, {
+    codexHome: "C:\\Users\\AKR\\.codex",
+    homeDir: "C:\\Users\\AKR",
+  });
+
+  assert.doesNotMatch(redacted, /sk-proj-/);
+  assert.doesNotMatch(redacted, /gho_/);
+  assert.doesNotMatch(redacted, /C:\\Users\\AKR/);
+  assert.match(redacted, /\[REDACTED\]/);
+  assert.match(redacted, /~\\?\.codex|~/);
+});
+
 test("listSessions derives titles, preserves named sessions, and excludes archives by default", async () => {
   const fixture = await createFixtureHome();
   const sessions = await listSessions(fixture.home);
@@ -358,6 +384,28 @@ test("buildExportDocument keeps structured timeline data and avoids duplicate co
   assert.equal(document.thread.tokenUsage.total_tokens, 15);
   assert.equal(document.entries[3].fence, "json");
   assert.equal(document.entries[4].fence, "json");
+});
+
+test("redactExportDocument masks secrets in entries and raw rollout lines", async () => {
+  const fixture = await createFixtureHome();
+  const rolloutPath = path.join(
+    fixture.home,
+    "sessions",
+    "2026",
+    "04",
+    "16",
+    makeRolloutFilename("2026-04-16T12-42-10", fixture.activeThreadId),
+  );
+  const document = await buildExportDocument(fixture.home, rolloutPath);
+  const redacted = redactExportDocument(document, {
+    codexHome: fixture.home,
+    homeDir: fixture.home,
+  });
+  const serialized = JSON.stringify(redacted);
+
+  assert.equal(redacted.redaction.enabled, true);
+  assert.doesNotMatch(serialized, /sk-proj-abcdefghijklmnopqrstuvwxyz1234567890/);
+  assert.match(serialized, /\[REDACTED\]/);
 });
 
 test("renderMarkdown includes bootstrap only when requested", async () => {
@@ -489,4 +537,57 @@ test("CLI rejects using --output and --bundle together", async () => {
     ]),
     /Use either --output FILE or --bundle DIR, not both/,
   );
+});
+
+test("CLI redacts markdown and JSON exports when requested", async () => {
+  const fixture = await createFixtureHome();
+
+  const markdown = await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--redact",
+  ]);
+  assert.doesNotMatch(markdown.stdout, /sk-proj-abcdefghijklmnopqrstuvwxyz1234567890/);
+  assert.doesNotMatch(markdown.stdout, new RegExp(fixture.home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(markdown.stdout, /\[REDACTED\]/);
+
+  const json = await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--format",
+    "json",
+    "--redact",
+  ]);
+  const parsed = JSON.parse(json.stdout);
+  assert.equal(parsed.redaction.enabled, true);
+  assert.doesNotMatch(JSON.stringify(parsed), /sk-proj-abcdefghijklmnopqrstuvwxyz1234567890/);
+});
+
+test("CLI redacts every bundle file when requested", async () => {
+  const fixture = await createFixtureHome();
+  const bundlePath = path.join(fixture.home, "redacted-bundle");
+
+  await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--bundle",
+    bundlePath,
+    "--redact",
+  ]);
+
+  for (const filename of ["chat.md", "chat.json", "manifest.json"]) {
+    const content = await fs.readFile(path.join(bundlePath, filename), "utf8");
+    assert.doesNotMatch(content, /sk-proj-abcdefghijklmnopqrstuvwxyz1234567890/);
+  }
+  const manifest = JSON.parse(await fs.readFile(path.join(bundlePath, "manifest.json"), "utf8"));
+  assert.equal(manifest.redaction.enabled, true);
 });

@@ -8,6 +8,7 @@ It reads Codex session rollouts directly from `~/.codex/sessions` and `~/.codex/
 - plain text for lightweight copying
 - JSON for full-fidelity tooling and automation
 - export bundles with Markdown, JSON, and manifest files
+- optional redaction for common secrets and local paths
 
 ## Why this exists
 
@@ -47,6 +48,7 @@ node scripts/codex-chat-export.mjs --last
 codex-chat-export --last
 codex-chat-export --current --format md --output current-chat.md
 codex-chat-export --last --bundle ./codex-chat-export
+codex-chat-export --last --bundle ./shareable-chat --redact
 codex-chat-export --list --limit 20
 codex-chat-export --match "billing bug" --format json --output billing-session.json
 codex-chat-export --id 019d9522-100c-70f3-8a41-6e70be1b917f --include-bootstrap
@@ -59,6 +61,7 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - `--format md|txt|json`: output format, defaults to `md`
 - `--output FILE`: write to a file instead of stdout
 - `--bundle DIR`: write `chat.md`, `chat.json`, and `manifest.json` to a directory
+- `--redact`: redact common secrets, credential-looking values, and local home/Codex paths
 - `--last`: export the most recently updated session
 - `--current`: export the session referenced by `CODEX_THREAD_ID`
 - `--id THREAD_ID`: export a specific session id
@@ -85,6 +88,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full companion-layer de
 - No secrets are embedded in code.
 - The tool reads only local Codex state and writes only to stdout or an explicit output path.
 - Bootstrap context is excluded from Markdown and text output by default because it may contain large instruction payloads.
+- `--redact` is available for shareable exports, but it is a best-effort safety layer, not a substitute for reviewing sensitive chats.
 
 See [SECURITY.md](SECURITY.md) for disclosure guidance and operational notes.
 
@@ -107,6 +111,7 @@ The test suite covers:
 - current-thread export via `CODEX_THREAD_ID`
 - file output
 - bundle output
+- opt-in redaction
 - invalid format handling
 - bootstrap rendering gates
 

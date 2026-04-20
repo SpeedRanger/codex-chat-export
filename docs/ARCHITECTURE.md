@@ -60,6 +60,23 @@ The clean long-term model is an export bundle:
 
 The CLI supports this with `--bundle DIR`. Single-file exports remain the fastest path for copying or scripting, while bundle mode is the richer artifact for archiving, sharing with collaborators, or feeding downstream tools.
 
+## Redaction Model
+
+Redaction is an opt-in export transform.
+
+The exporter first builds the normal structured export document from rollout JSONL, then `--redact` applies a recursive redaction pass before Markdown, text, JSON, or bundle files are rendered.
+
+This keeps the core parser read-only and deterministic while making the same safety behavior available across every output mode.
+
+Current redaction targets:
+
+- common API key and token patterns
+- credential-looking key-value fields such as `api_key`, `token`, `secret`, and `password`
+- credential-bearing URLs
+- local home and Codex home paths
+
+Redaction is intentionally documented as best-effort. It reduces accidental disclosure but does not replace human review before sharing an export publicly.
+
 ## Source Of Truth
 
 Rollout JSONL files are the canonical source.

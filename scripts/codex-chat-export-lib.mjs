@@ -9,6 +9,7 @@ const ARCHIVED_SESSIONS_DIRNAME = "archived_sessions";
 const MAX_SCAN_FILES = 10000;
 const HEAD_LINE_LIMIT = 40;
 const USER_MESSAGE_BEGIN = "<user_message>";
+const REDACTION_TOKEN = "[REDACTED]";
 
 export function defaultCodexHome() {
   return path.join(os.homedir(), ".codex");
@@ -208,6 +209,109 @@ export function formatStructuredValue(value) {
   return {
     text: String(value ?? ""),
     fence: "text",
+  };
+}
+
+function normalizePathForRedaction(value) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized.replace(/\\/g, "/").replace(/\/+$/g, "");
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function collectRedactionPaths(options = {}) {
+  const candidates = [
+    options.homeDir,
+    options.codexHome,
+    options.workspace,
+    process.env.HOME,
+    process.env.USERPROFILE,
+  ];
+  const paths = new Set();
+  for (const candidate of candidates) {
+    const normalized = normalizePathForRedaction(candidate);
+    if (!normalized || normalized.length < 3) {
+      continue;
+    }
+    paths.add(normalized);
+    paths.add(normalized.replace(/\//g, "\\"));
+  }
+  return [...paths].sort((left, right) => right.length - left.length);
+}
+
+export function redactString(value, options = {}) {
+  let redacted = String(value ?? "");
+
+  const secretPatterns = [
+    /\bsk-(?:proj-|ant-|live_|test_)?[A-Za-z0-9_-]{20,}\b/g,
+    /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b/g,
+    /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g,
+    /\bAKIA[0-9A-Z]{16}\b/g,
+    /\bASIA[0-9A-Z]{16}\b/g,
+    /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/g,
+    /\b(?:pk|rk|sk)_(?:live|test)_[A-Za-z0-9]{16,}\b/g,
+    /\bBearer\s+[A-Za-z0-9._~+/=-]{20,}\b/gi,
+  ];
+  for (const pattern of secretPatterns) {
+    redacted = redacted.replace(pattern, REDACTION_TOKEN);
+  }
+
+  redacted = redacted.replace(
+    /\b(api[_-]?key|access[_-]?token|auth[_-]?token|authorization|bearer|cookie|password|passwd|secret|client[_-]?secret)\b(\s*[:=]\s*)(["']?)([^"',\s;}\]]{6,})(["']?)/gi,
+    (_match, key, separator, openQuote, _secret, closeQuote) =>
+      `${key}${separator}${openQuote}${REDACTION_TOKEN}${closeQuote}`,
+  );
+
+  redacted = redacted.replace(
+    /\b(https?:\/\/)([^:@\s/]+):([^@\s/]+)@/gi,
+    `$1${REDACTION_TOKEN}@`,
+  );
+
+  for (const sensitivePath of collectRedactionPaths(options)) {
+    redacted = redacted.replace(new RegExp(escapeRegExp(sensitivePath), "gi"), "~");
+  }
+
+  return redacted;
+}
+
+function redactValue(value, options = {}) {
+  if (typeof value === "string") {
+    return redactString(value, options);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactValue(item, options));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [
+        key,
+        redactValue(nestedValue, options),
+      ]),
+    );
+  }
+  return value;
+}
+
+export function redactExportDocument(document, options = {}) {
+  const redacted = redactValue(document, options);
+  return {
+    ...redacted,
+    redaction: {
+      enabled: true,
+      appliedAt: new Date().toISOString(),
+      marker: REDACTION_TOKEN,
+      rules: [
+        "common API key and token patterns",
+        "credential-bearing URLs",
+        "sensitive key-value fields",
+        "local home and Codex home paths",
+      ],
+    },
   };
 }
 
@@ -939,6 +1043,7 @@ export function usageText() {
     "  --limit N                Limit rows for --list or --match scan (default: 20)",
     "  --include-archived       Include archived sessions in scans and lookup",
     "  --include-bootstrap      Include developer/system/bootstrap context in export",
+    "  --redact                 Redact common secrets and local paths from exported content",
     "  --help                   Show this help text",
   ].join("\n");
 }
