@@ -124,6 +124,16 @@ Run:
 npm test
 ```
 
+## Benchmarking
+
+Generate a synthetic long Codex rollout and measure common export paths:
+
+```bash
+npm run benchmark:large -- --turns 1000
+```
+
+Use `--keep` to preserve the generated fixture for inspection.
+
 ## Product direction
 
 This is designed as a small, sharp utility:

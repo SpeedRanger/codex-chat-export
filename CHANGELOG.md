@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Add `npm run benchmark:large` for repeatable synthetic long-rollout benchmarking.
+
 ## 0.4.0
 
 - Add `--no-raw` to omit `rawRolloutLines` from JSON and bundle exports.
