@@ -49,6 +49,7 @@ codex-chat-export --last
 codex-chat-export --current --format md --output current-chat.md
 codex-chat-export --last --bundle ./codex-chat-export
 codex-chat-export --last --bundle ./shareable-chat --redact
+codex-chat-export --last --format json --no-raw --output compact-chat.json
 codex-chat-export --list --limit 20
 codex-chat-export --match "billing bug" --format json --output billing-session.json
 codex-chat-export --id 019d9522-100c-70f3-8a41-6e70be1b917f --include-bootstrap
@@ -62,6 +63,7 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - `--output FILE`: write to a file instead of stdout
 - `--bundle DIR`: write `chat.md`, `chat.json`, and `manifest.json` to a directory
 - `--redact`: redact common secrets, credential-looking values, and local home/Codex paths
+- `--no-raw`: omit `rawRolloutLines` from JSON output and bundles for smaller artifacts
 - `--last`: export the most recently updated session
 - `--current`: export the session referenced by `CODEX_THREAD_ID`
 - `--id THREAD_ID`: export a specific session id
@@ -112,6 +114,7 @@ The test suite covers:
 - file output
 - bundle output
 - opt-in redaction
+- compact JSON without raw rollout lines
 - invalid format handling
 - bootstrap rendering gates
 

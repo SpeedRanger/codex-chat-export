@@ -874,6 +874,7 @@ function metadataFromSessionMeta(sessionMetaLine, sessionSummary, tokenUsage) {
 }
 
 export async function buildExportDocument(codexHome, rolloutPath, options = {}) {
+  const includeRawRolloutLines = options.includeRawRolloutLines !== false;
   const indexes = await loadThreadNameIndexes(codexHome);
   const sessionSummary = await summarizeRolloutFile(rolloutPath, indexes);
   const rawLines = await readAllRolloutLines(rolloutPath);
@@ -895,8 +896,9 @@ export async function buildExportDocument(codexHome, rolloutPath, options = {}) 
       rawLineCount: rawLines.length,
       entryCount: filtered.entries.length,
       bootstrapCount: filtered.bootstrapEntries.length,
+      rawRolloutLinesIncluded: includeRawRolloutLines,
     },
-    rawRolloutLines: rawLines,
+    ...(includeRawRolloutLines ? { rawRolloutLines: rawLines } : {}),
   };
 }
 
@@ -1044,6 +1046,7 @@ export function usageText() {
     "  --include-archived       Include archived sessions in scans and lookup",
     "  --include-bootstrap      Include developer/system/bootstrap context in export",
     "  --redact                 Redact common secrets and local paths from exported content",
+    "  --no-raw                 Omit rawRolloutLines from JSON output and bundles",
     "  --help                   Show this help text",
   ].join("\n");
 }

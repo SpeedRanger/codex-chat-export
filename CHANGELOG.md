@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Add `--no-raw` to omit `rawRolloutLines` from JSON and bundle exports.
+- Preserve normalized entries, metadata, and raw line counts while producing smaller structured artifacts.
+- Update bundle manifest descriptions when compact JSON is used.
+- Expand test coverage to 23 tests.
+
 ## 0.3.0
 
 - Add `--redact` for opt-in best-effort redaction across Markdown, text, JSON, and bundle exports.

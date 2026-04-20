@@ -384,6 +384,28 @@ test("buildExportDocument keeps structured timeline data and avoids duplicate co
   assert.equal(document.thread.tokenUsage.total_tokens, 15);
   assert.equal(document.entries[3].fence, "json");
   assert.equal(document.entries[4].fence, "json");
+  assert.equal(document.stats.rawRolloutLinesIncluded, true);
+  assert.ok(Array.isArray(document.rawRolloutLines));
+});
+
+test("buildExportDocument can omit raw rollout lines for compact JSON", async () => {
+  const fixture = await createFixtureHome();
+  const rolloutPath = path.join(
+    fixture.home,
+    "sessions",
+    "2026",
+    "04",
+    "16",
+    makeRolloutFilename("2026-04-16T12-42-10", fixture.activeThreadId),
+  );
+
+  const document = await buildExportDocument(fixture.home, rolloutPath, {
+    includeRawRolloutLines: false,
+  });
+
+  assert.equal(document.stats.rawLineCount > 0, true);
+  assert.equal(document.stats.rawRolloutLinesIncluded, false);
+  assert.equal("rawRolloutLines" in document, false);
 });
 
 test("redactExportDocument masks secrets in entries and raw rollout lines", async () => {
@@ -590,4 +612,41 @@ test("CLI redacts every bundle file when requested", async () => {
   }
   const manifest = JSON.parse(await fs.readFile(path.join(bundlePath, "manifest.json"), "utf8"));
   assert.equal(manifest.redaction.enabled, true);
+});
+
+test("CLI omits raw rollout lines from compact JSON and bundle exports", async () => {
+  const fixture = await createFixtureHome();
+
+  const json = await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--format",
+    "json",
+    "--no-raw",
+  ]);
+  const parsed = JSON.parse(json.stdout);
+  assert.equal(parsed.stats.rawRolloutLinesIncluded, false);
+  assert.equal("rawRolloutLines" in parsed, false);
+
+  const bundlePath = path.join(fixture.home, "compact-bundle");
+  await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--bundle",
+    bundlePath,
+    "--no-raw",
+  ]);
+  const bundleJson = JSON.parse(await fs.readFile(path.join(bundlePath, "chat.json"), "utf8"));
+  const manifest = JSON.parse(await fs.readFile(path.join(bundlePath, "manifest.json"), "utf8"));
+
+  assert.equal(bundleJson.stats.rawRolloutLinesIncluded, false);
+  assert.equal("rawRolloutLines" in bundleJson, false);
+  assert.equal(manifest.stats.rawRolloutLinesIncluded, false);
+  assert.match(manifest.files[1].description, /Compact structured export/);
 });

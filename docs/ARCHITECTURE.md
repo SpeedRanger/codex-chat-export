@@ -60,6 +60,8 @@ The clean long-term model is an export bundle:
 
 The CLI supports this with `--bundle DIR`. Single-file exports remain the fastest path for copying or scripting, while bundle mode is the richer artifact for archiving, sharing with collaborators, or feeding downstream tools.
 
+`--no-raw` can be used with JSON or bundle exports to omit `rawRolloutLines`. This keeps the normalized timeline, metadata, and stats while producing smaller artifacts for sharing or automation.
+
 ## Redaction Model
 
 Redaction is an opt-in export transform.

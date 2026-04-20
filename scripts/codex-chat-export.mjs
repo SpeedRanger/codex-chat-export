@@ -56,7 +56,9 @@ function buildBundleManifest(document) {
       {
         path: "chat.json",
         format: "json",
-        description: "Full-fidelity structured export including raw rollout lines.",
+        description: document.stats.rawRolloutLinesIncluded
+          ? "Full-fidelity structured export including raw rollout lines."
+          : "Compact structured export without raw rollout lines.",
       },
       {
         path: "manifest.json",
@@ -145,6 +147,7 @@ async function main() {
       "include-archived": { type: "boolean", default: false },
       "include-bootstrap": { type: "boolean", default: false },
       redact: { type: "boolean", default: false },
+      "no-raw": { type: "boolean", default: false },
     },
   });
 
@@ -174,6 +177,7 @@ async function main() {
     includeArchived: Boolean(values["include-archived"]),
     includeBootstrap: Boolean(values["include-bootstrap"]),
     redact: Boolean(values.redact),
+    noRaw: Boolean(values["no-raw"]),
   };
 
   if (options.output && options.bundle) {
@@ -203,6 +207,7 @@ async function main() {
   const target = await resolveTargetSession(options);
   const rawDocument = await buildExportDocument(home, target.rolloutPath, {
     includeBootstrap: options.includeBootstrap,
+    includeRawRolloutLines: !options.noRaw,
   });
   const document = options.redact
     ? redactExportDocument(rawDocument, {
