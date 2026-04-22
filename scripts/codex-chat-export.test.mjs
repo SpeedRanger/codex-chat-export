@@ -408,6 +408,58 @@ test("buildExportDocument can omit raw rollout lines for compact JSON", async ()
   assert.equal("rawRolloutLines" in document, false);
 });
 
+test("buildExportDocument reports malformed and unknown rollout schema lines", async () => {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), "codex-chat-export-schema-"));
+  const threadId = "019d9522-100c-70f3-8a41-6e70be1b9180";
+  const rolloutPath = path.join(
+    home,
+    "sessions",
+    "2026",
+    "04",
+    "16",
+    makeRolloutFilename("2026-04-16T12-42-10", threadId),
+  );
+  await fs.mkdir(path.dirname(rolloutPath), { recursive: true });
+  const lines = [
+    JSON.stringify(buildSessionMeta({ threadId, timestamp: "2026-04-16T07:12:10.775Z" })),
+    "this is not valid json and should be preserved",
+    JSON.stringify({
+      type: "response_item",
+      payload: {
+        type: "future_tool_call",
+        input: { ok: true },
+      },
+    }),
+    JSON.stringify({
+      type: "event_msg",
+      payload: {
+        type: "future_event",
+        message: "new Codex event shape",
+      },
+    }),
+  ];
+  await fs.writeFile(rolloutPath, `${lines.join("\n")}\n`, "utf8");
+
+  const document = await buildExportDocument(home, rolloutPath);
+
+  assert.equal(document.schema.ok, false);
+  assert.equal(document.stats.rawLineCount, 3);
+  assert.equal(document.stats.physicalLineCount, 4);
+  assert.equal(document.stats.malformedLineCount, 1);
+  assert.equal(document.schema.malformedLines[0].lineNumber, 2);
+  assert.equal(document.malformedRolloutLines[0].text, lines[1]);
+  assert.deepEqual(document.schema.unknown.responseItemTypes[0], {
+    type: "future_tool_call",
+    count: 1,
+    exampleLines: [3],
+  });
+  assert.deepEqual(document.schema.unknown.eventMessageTypes[0], {
+    type: "future_event",
+    count: 1,
+    exampleLines: [4],
+  });
+});
+
 test("redactExportDocument masks secrets in entries and raw rollout lines", async () => {
   const fixture = await createFixtureHome();
   const rolloutPath = path.join(
@@ -511,6 +563,23 @@ test("CLI rejects invalid formats with a clear error", async () => {
     execFileAsync(process.execPath, [CLI_PATH, "--home", fixture.home, "--last", "--format", "html"]),
     /Unsupported format "html"/,
   );
+});
+
+test("CLI validates selected rollout schema as JSON", async () => {
+  const fixture = await createFixtureHome();
+  const { stdout } = await execFileAsync(process.execPath, [
+    CLI_PATH,
+    "--home",
+    fixture.home,
+    "--id",
+    fixture.activeThreadId,
+    "--validate",
+  ]);
+  const report = JSON.parse(stdout);
+
+  assert.equal(report.version, 1);
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.unknown.responseItemTypes, []);
 });
 
 test("CLI writes bundle exports with markdown, JSON, and manifest files", async () => {

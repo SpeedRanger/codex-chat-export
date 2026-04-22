@@ -148,6 +148,7 @@ async function main() {
       "include-bootstrap": { type: "boolean", default: false },
       redact: { type: "boolean", default: false },
       "no-raw": { type: "boolean", default: false },
+      validate: { type: "boolean", default: false },
     },
   });
 
@@ -178,10 +179,15 @@ async function main() {
     includeBootstrap: Boolean(values["include-bootstrap"]),
     redact: Boolean(values.redact),
     noRaw: Boolean(values["no-raw"]),
+    validate: Boolean(values.validate),
   };
 
   if (options.output && options.bundle) {
     throw new Error("Use either --output FILE or --bundle DIR, not both.");
+  }
+
+  if (options.validate && options.bundle) {
+    throw new Error("Use either --validate or --bundle DIR, not both.");
   }
 
   if (!options.id && !options.match && positionalQuery) {
@@ -207,7 +213,7 @@ async function main() {
   const target = await resolveTargetSession(options);
   const rawDocument = await buildExportDocument(home, target.rolloutPath, {
     includeBootstrap: options.includeBootstrap,
-    includeRawRolloutLines: !options.noRaw,
+    includeRawRolloutLines: !options.noRaw && !options.validate,
   });
   const document = options.redact
     ? redactExportDocument(rawDocument, {
@@ -215,6 +221,17 @@ async function main() {
         homeDir: process.env.USERPROFILE ?? process.env.HOME,
       })
     : rawDocument;
+
+  if (options.validate) {
+    const content = `${JSON.stringify(document.schema, null, 2)}\n`;
+    if (options.output) {
+      await writeOutput(options.output, content);
+      process.stdout.write(`${options.output}\n`);
+      return;
+    }
+    process.stdout.write(content);
+    return;
+  }
 
   if (options.bundle) {
     await writeBundle(options.bundle, document, options);

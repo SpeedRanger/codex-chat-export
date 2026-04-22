@@ -1,6 +1,6 @@
 {
   "name": "codex-chat-export",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Export full Codex CLI chats from local rollout JSONL into clean markdown, text, or JSON.",
   "type": "module",
   "private": false,

@@ -28,6 +28,7 @@ This tool exports:
 - tool outputs
 - session metadata
 - optional bootstrap context
+- schema diagnostics for malformed or unknown rollout lines
 
 ## Install
 
@@ -54,6 +55,7 @@ codex-chat-export --current --format md --output current-chat.md
 codex-chat-export --last --bundle ./codex-chat-export
 codex-chat-export --last --bundle ./shareable-chat --redact
 codex-chat-export --last --format json --no-raw --output compact-chat.json
+codex-chat-export --last --validate
 codex-chat-export --list --limit 20
 codex-chat-export --match "billing bug" --format json --output billing-session.json
 codex-chat-export --id 019d9522-100c-70f3-8a41-6e70be1b917f --include-bootstrap
@@ -68,6 +70,7 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - `--bundle DIR`: write `chat.md`, `chat.json`, and `manifest.json` to a directory
 - `--redact`: redact common secrets, credential-looking values, and local home/Codex paths
 - `--no-raw`: omit `rawRolloutLines` from JSON output and bundles for smaller artifacts
+- `--validate`: print rollout schema diagnostics as JSON instead of exporting the chat
 - `--last`: export the most recently updated session
 - `--current`: export the session referenced by `CODEX_THREAD_ID`
 - `--id THREAD_ID`: export a specific session id
@@ -121,6 +124,8 @@ The test suite covers:
 - bundle output
 - opt-in redaction
 - compact JSON without raw rollout lines
+- malformed JSONL accounting
+- rollout schema validation
 - invalid format handling
 - bootstrap rendering gates
 
@@ -138,7 +143,9 @@ Generate a synthetic long Codex rollout and measure common export paths:
 npm run benchmark:large -- --turns 1000
 ```
 
-Use `--keep` to preserve the generated fixture for inspection.
+Use `--malformed-interval N` to inject corrupt JSONL lines every `N` turns and verify diagnostics under load. Use `--keep` to preserve the generated fixture for inspection.
+
+Current expectation: listing only reads rollout heads, so it should stay fast even with large sessions. Full JSON intentionally carries parsed raw rollout objects and can be large; use `--no-raw` for compact automation artifacts and `--validate` when you only need schema drift diagnostics.
 
 ## Product direction
 

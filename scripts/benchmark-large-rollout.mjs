@@ -94,7 +94,7 @@ function buildTurn(index) {
   ];
 }
 
-async function createSyntheticHome(turns) {
+async function createSyntheticHome(turns, options = {}) {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), "codex-chat-export-benchmark-"));
   const rolloutDir = path.join(home, "sessions", "2026", "04", "16");
   const rolloutPath = path.join(
@@ -119,6 +119,12 @@ async function createSyntheticHome(turns) {
   for (let index = 1; index <= turns; index += 1) {
     for (const line of buildTurn(index)) {
       content += rolloutLine(line);
+    }
+    if (
+      options.malformedInterval > 0 &&
+      index % options.malformedInterval === 0
+    ) {
+      content += `{malformed benchmark line ${index}\n`;
     }
   }
 
@@ -187,11 +193,15 @@ async function main() {
   const { values } = parseArgs({
     options: {
       turns: { type: "string", default: "1000" },
+      "malformed-interval": { type: "string", default: "0" },
       keep: { type: "boolean", default: false },
     },
   });
   const turns = parsePositiveInteger(values.turns, 1000);
-  const fixture = await createSyntheticHome(turns);
+  const malformedInterval = parsePositiveInteger(values["malformed-interval"], 0);
+  const fixture = await createSyntheticHome(turns, {
+    malformedInterval,
+  });
   const outputDir = path.join(fixture.home, "outputs");
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -215,6 +225,7 @@ async function main() {
     await timedRun("full json", [...common, "--format", "json", "--output", fullJsonPath], fullJsonPath),
   );
   results.push(await timedRun("compact bundle", [...common, "--bundle", bundlePath, "--no-raw"]));
+  results.push(await timedRun("schema validate", [...common, "--validate"]));
 
   printResults(turns, results);
   if (values.keep) {

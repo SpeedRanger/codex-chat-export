@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+- Add `--validate` to emit rollout schema diagnostics as JSON.
+- Report malformed JSONL lines and unknown rollout/event/response item shapes.
+- Preserve malformed rollout line text in full JSON exports so corrupt lines are not silently lost.
+- Add schema diagnostics to Markdown exports when issues are detected.
+- Expand large-rollout benchmarking with schema validation and optional malformed-line injection.
+- Update GitHub Actions workflows to current action majors and keep Scorecard read-only for publishing.
+
 ## 0.4.2
 
 - Add public showcase documentation and output model visual.

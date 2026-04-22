@@ -10,6 +10,48 @@ const MAX_SCAN_FILES = 10000;
 const HEAD_LINE_LIMIT = 40;
 const USER_MESSAGE_BEGIN = "<user_message>";
 const REDACTION_TOKEN = "[REDACTED]";
+const SCHEMA_SAMPLE_LIMIT = 5;
+const MALFORMED_LINE_PREVIEW_LIMIT = 240;
+const KNOWN_TOP_LEVEL_TYPES = new Set([
+  "compacted",
+  "event_msg",
+  "response_item",
+  "session_meta",
+  "turn_context",
+]);
+const KNOWN_RESPONSE_ITEM_TYPES = new Set([
+  "custom_tool_call",
+  "custom_tool_call_output",
+  "function_call",
+  "function_call_output",
+  "image_generation_call",
+  "local_shell_call",
+  "message",
+  "reasoning",
+  "tool_search_call",
+  "tool_search_output",
+  "web_search_call",
+]);
+const KNOWN_EVENT_MESSAGE_TYPES = new Set([
+  "agent_message",
+  "agent_reasoning",
+  "agent_reasoning_raw_content",
+  "context_compacted",
+  "exec_command_begin",
+  "exec_command_end",
+  "mcp_tool_call_begin",
+  "mcp_tool_call_end",
+  "patch_apply_begin",
+  "patch_apply_end",
+  "task_complete",
+  "task_started",
+  "thread_rolled_back",
+  "token_count",
+  "turn_aborted",
+  "user_message",
+  "web_search_begin",
+  "web_search_end",
+]);
 
 export function defaultCodexHome() {
   return path.join(os.homedir(), ".codex");
@@ -62,6 +104,124 @@ function truncate(text, maxLength) {
     return value;
   }
   return `${value.slice(0, maxLength - 3)}...`;
+}
+
+function incrementCount(map, key) {
+  const normalized = String(key || "unknown");
+  map.set(normalized, (map.get(normalized) ?? 0) + 1);
+}
+
+function countsToArray(map) {
+  return [...map.entries()]
+    .sort((left, right) => {
+      if (right[1] !== left[1]) {
+        return right[1] - left[1];
+      }
+      return left[0].localeCompare(right[0]);
+    })
+    .map(([type, count]) => ({ type, count }));
+}
+
+function pushUnknownSample(map, type, lineNumber) {
+  const normalized = String(type || "unknown");
+  const existing = map.get(normalized) ?? {
+    type: normalized,
+    count: 0,
+    exampleLines: [],
+  };
+  existing.count += 1;
+  if (existing.exampleLines.length < SCHEMA_SAMPLE_LIMIT) {
+    existing.exampleLines.push(lineNumber);
+  }
+  map.set(normalized, existing);
+}
+
+function unknownsToArray(map) {
+  return [...map.values()].sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+    return left.type.localeCompare(right.type);
+  });
+}
+
+function asSchemaRecord(item, index) {
+  if (
+    item &&
+    typeof item === "object" &&
+    "value" in item &&
+    Number.isInteger(item.lineNumber)
+  ) {
+    return item;
+  }
+  return {
+    value: item,
+    lineNumber: index + 1,
+  };
+}
+
+export function buildSchemaReport(recordsOrLines, malformedLines = []) {
+  const topLevelTypes = new Map();
+  const responseItemTypes = new Map();
+  const eventMessageTypes = new Map();
+  const unknownTopLevelTypes = new Map();
+  const unknownResponseItemTypes = new Map();
+  const unknownEventMessageTypes = new Map();
+
+  for (const [index, item] of recordsOrLines.entries()) {
+    const record = asSchemaRecord(item, index);
+    const line = record.value;
+    if (!line || typeof line !== "object") {
+      pushUnknownSample(unknownTopLevelTypes, "non_object", record.lineNumber);
+      continue;
+    }
+
+    const topLevelType = String(line.type || "missing_type");
+    incrementCount(topLevelTypes, topLevelType);
+    if (!KNOWN_TOP_LEVEL_TYPES.has(topLevelType)) {
+      pushUnknownSample(unknownTopLevelTypes, topLevelType, record.lineNumber);
+    }
+
+    if (topLevelType === "response_item") {
+      const responseItemType = String(line.payload?.type || "missing_payload_type");
+      incrementCount(responseItemTypes, responseItemType);
+      if (!KNOWN_RESPONSE_ITEM_TYPES.has(responseItemType)) {
+        pushUnknownSample(unknownResponseItemTypes, responseItemType, record.lineNumber);
+      }
+    }
+
+    if (topLevelType === "event_msg") {
+      const eventMessageType = String(line.payload?.type || "missing_payload_type");
+      incrementCount(eventMessageTypes, eventMessageType);
+      if (!KNOWN_EVENT_MESSAGE_TYPES.has(eventMessageType)) {
+        pushUnknownSample(unknownEventMessageTypes, eventMessageType, record.lineNumber);
+      }
+    }
+  }
+
+  const unknown = {
+    topLevelTypes: unknownsToArray(unknownTopLevelTypes),
+    responseItemTypes: unknownsToArray(unknownResponseItemTypes),
+    eventMessageTypes: unknownsToArray(unknownEventMessageTypes),
+  };
+  const malformedLineCount = malformedLines.length;
+
+  return {
+    version: 1,
+    ok:
+      malformedLineCount === 0 &&
+      unknown.topLevelTypes.length === 0 &&
+      unknown.responseItemTypes.length === 0 &&
+      unknown.eventMessageTypes.length === 0,
+    malformedLineCount,
+    malformedLines: malformedLines.slice(0, SCHEMA_SAMPLE_LIMIT),
+    observed: {
+      topLevelTypes: countsToArray(topLevelTypes),
+      responseItemTypes: countsToArray(responseItemTypes),
+      eventMessageTypes: countsToArray(eventMessageTypes),
+    },
+    unknown,
+  };
 }
 
 function sanitizePreviewText(text) {
@@ -654,25 +814,45 @@ export function pickMatchingSession(sessions, query) {
   );
 }
 
-async function readAllRolloutLines(filePath) {
-  const lines = [];
+async function readAllRolloutRecords(filePath) {
+  const records = [];
+  const malformedLines = [];
   const input = fs.createReadStream(filePath, { encoding: "utf8" });
   const rl = readline.createInterface({ input, crlfDelay: Infinity });
+  let physicalLineCount = 0;
+  let nonEmptyLineCount = 0;
   try {
     for await (const line of rl) {
+      physicalLineCount += 1;
       if (!line.trim()) {
         continue;
       }
+      nonEmptyLineCount += 1;
       const parsed = safeJsonParse(line);
       if (parsed) {
-        lines.push(parsed);
+        records.push({
+          lineNumber: physicalLineCount,
+          value: parsed,
+        });
+      } else {
+        malformedLines.push({
+          lineNumber: physicalLineCount,
+          text: line,
+          preview: truncate(line, MALFORMED_LINE_PREVIEW_LIMIT),
+        });
       }
     }
   } finally {
     rl.close();
     input.destroy();
   }
-  return lines;
+  return {
+    records,
+    lines: records.map((record) => record.value),
+    malformedLines,
+    physicalLineCount,
+    nonEmptyLineCount,
+  };
 }
 
 function buildTokenUsage(lines) {
@@ -877,10 +1057,12 @@ export async function buildExportDocument(codexHome, rolloutPath, options = {}) 
   const includeRawRolloutLines = options.includeRawRolloutLines !== false;
   const indexes = await loadThreadNameIndexes(codexHome);
   const sessionSummary = await summarizeRolloutFile(rolloutPath, indexes);
-  const rawLines = await readAllRolloutLines(rolloutPath);
+  const rollout = await readAllRolloutRecords(rolloutPath);
+  const rawLines = rollout.lines;
   const sessionMetaLine = rawLines.find((line) => line.type === "session_meta") ?? null;
   const tokenUsage = buildTokenUsage(rawLines);
   const filtered = buildFilteredEntries(rawLines, options);
+  const schema = buildSchemaReport(rollout.records, rollout.malformedLines);
 
   return {
     version: 1,
@@ -894,11 +1076,22 @@ export async function buildExportDocument(codexHome, rolloutPath, options = {}) 
     entries: filtered.entries,
     stats: {
       rawLineCount: rawLines.length,
+      physicalLineCount: rollout.physicalLineCount,
+      nonEmptyLineCount: rollout.nonEmptyLineCount,
+      malformedLineCount: rollout.malformedLines.length,
       entryCount: filtered.entries.length,
       bootstrapCount: filtered.bootstrapEntries.length,
       rawRolloutLinesIncluded: includeRawRolloutLines,
     },
-    ...(includeRawRolloutLines ? { rawRolloutLines: rawLines } : {}),
+    schema,
+    ...(includeRawRolloutLines
+      ? {
+          rawRolloutLines: rawLines,
+          ...(rollout.malformedLines.length > 0
+            ? { malformedRolloutLines: rollout.malformedLines }
+            : {}),
+        }
+      : {}),
   };
 }
 
@@ -993,7 +1186,27 @@ export function renderMarkdown(document, options = {}) {
   lines.push(`- Exported entries: ${stats.entryCount}`);
   lines.push(`- Bootstrap entries: ${stats.bootstrapCount}`);
   lines.push(`- Raw rollout lines: ${stats.rawLineCount}`);
+  if (Number.isFinite(stats.malformedLineCount) && stats.malformedLineCount > 0) {
+    lines.push(`- Malformed rollout lines: ${stats.malformedLineCount}`);
+  }
   lines.push("");
+
+  if (document.schema && !document.schema.ok) {
+    lines.push("## Schema Diagnostics", "");
+    if (document.schema.malformedLineCount > 0) {
+      lines.push(`- Malformed JSONL lines: ${document.schema.malformedLineCount}`);
+    }
+    for (const [label, items] of Object.entries(document.schema.unknown)) {
+      if (items.length === 0) {
+        continue;
+      }
+      const rendered = items
+        .map((item) => `${item.type} (${item.count}, lines ${item.exampleLines.join(", ")})`)
+        .join("; ");
+      lines.push(`- Unknown ${label}: ${rendered}`);
+    }
+    lines.push("");
+  }
 
   return lines.join("\n");
 }
@@ -1031,6 +1244,7 @@ export function usageText() {
     "  node scripts/codex-chat-export.mjs --id THREAD_ID [--output FILE]",
     "  node scripts/codex-chat-export.mjs --match QUERY [--output FILE]",
     "  node scripts/codex-chat-export.mjs --list [--limit N]",
+    "  node scripts/codex-chat-export.mjs --last --validate",
     "",
     "Options:",
     "  --home PATH              Override Codex home (default: ~/.codex)",
@@ -1047,6 +1261,7 @@ export function usageText() {
     "  --include-bootstrap      Include developer/system/bootstrap context in export",
     "  --redact                 Redact common secrets and local paths from exported content",
     "  --no-raw                 Omit rawRolloutLines from JSON output and bundles",
+    "  --validate               Print selected rollout schema diagnostics as JSON",
     "  --help                   Show this help text",
   ].join("\n");
 }
