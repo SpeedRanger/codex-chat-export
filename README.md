@@ -1,5 +1,9 @@
 # Codex Chat Export
 
+[![CI](https://github.com/SpeedRanger/codex-chat-export/actions/workflows/ci.yml/badge.svg)](https://github.com/SpeedRanger/codex-chat-export/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/SpeedRanger/codex-chat-export/actions/workflows/codeql.yml/badge.svg)](https://github.com/SpeedRanger/codex-chat-export/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://github.com/SpeedRanger/codex-chat-export/actions/workflows/scorecard.yml/badge.svg)](https://github.com/SpeedRanger/codex-chat-export/actions/workflows/scorecard.yml)
+
 `codex-chat-export` turns local Codex CLI rollout history into clean, portable exports.
 
 It reads Codex session rollouts directly from `~/.codex/sessions` and `~/.codex/archived_sessions`, then emits:
@@ -82,6 +86,8 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - Commentary-phase assistant messages are deduplicated against `event_msg.agent_message`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full companion-layer decision and phased direction.
+
+For a visual walkthrough of the export artifact, see [docs/SHOWCASE.md](docs/SHOWCASE.md).
 
 ## Security
 

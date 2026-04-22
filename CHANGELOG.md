@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2
+
+- Add public showcase documentation and output model visual.
+- Add `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+- Add OpenSSF Scorecard workflow.
+- Run `npm audit --audit-level=moderate` in CI.
+- Add README badges for CI, CodeQL, and Scorecard.
+
 ## 0.4.1
 
 - Add `npm run benchmark:large` for repeatable synthetic long-rollout benchmarking.

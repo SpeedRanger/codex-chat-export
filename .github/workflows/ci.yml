@@ -28,4 +28,6 @@ jobs:
 
       - run: npm install
 
+      - run: npm audit --audit-level=moderate
+
       - run: npm test

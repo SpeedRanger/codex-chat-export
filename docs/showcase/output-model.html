@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Chat Export Output Visual</title>
+  <style>
+    :root {
+      --bg: #f7f2ea;
+      --paper: #fffaf1;
+      --paper-2: #f0e7d8;
+      --ink: #241e18;
+      --muted: #74695c;
+      --line: rgba(75, 61, 45, 0.18);
+      --terracotta: #b84a2a;
+      --terracotta-soft: #f3d5c9;
+      --sage: #677f52;
+      --sage-soft: #dfe8d4;
+      --blue: #274c67;
+      --blue-soft: #d6e2e8;
+      --gold: #bd8428;
+      --gold-soft: #f4dfb6;
+      --shadow: 0 22px 60px rgba(64, 43, 24, 0.12);
+      --mono: "Azeret Mono", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+      --serif: Georgia, "Times New Roman", serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 14% 10%, rgba(184, 74, 42, 0.14), transparent 30rem),
+        radial-gradient(circle at 84% 4%, rgba(103, 127, 82, 0.18), transparent 28rem),
+        linear-gradient(rgba(36, 30, 24, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(36, 30, 24, 0.035) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, auto, 32px 32px, 32px 32px, auto;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 48px 0 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      align-items: stretch;
+      margin-bottom: 28px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--paper) 92%, white 8%);
+      box-shadow: var(--shadow);
+      border-radius: 28px;
+      padding: 28px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      margin-bottom: 18px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: var(--terracotta-soft);
+      color: var(--terracotta);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      font-family: var(--serif);
+      font-size: clamp(42px, 6vw, 82px);
+      line-height: 0.92;
+      letter-spacing: -0.055em;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .command {
+      display: grid;
+      gap: 12px;
+      align-content: center;
+      background: #1d1a16;
+      color: #f6efe3;
+      box-shadow: 0 24px 80px rgba(20, 14, 9, 0.22);
+    }
+
+    .command small {
+      color: #c6bfb3;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    code {
+      font-family: var(--mono);
+    }
+
+    .command code {
+      display: block;
+      padding: 18px;
+      border: 1px solid rgba(246, 239, 227, 0.12);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.055);
+      color: #ffe0b0;
+      font-size: 15px;
+      line-height: 1.55;
+      overflow-x: auto;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 0.85fr 1.2fr 0.95fr;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 22px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 230px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 250, 241, 0.74);
+      padding: 22px;
+      box-shadow: 0 14px 40px rgba(64, 43, 24, 0.08);
+    }
+
+    .step::after {
+      content: "";
+      position: absolute;
+      top: 48%;
+      right: -18px;
+      width: 18px;
+      height: 2px;
+      background: var(--line);
+    }
+
+    .step:last-child::after {
+      display: none;
+    }
+
+    .tag {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .tag.sage {
+      color: var(--sage);
+      background: var(--sage-soft);
+    }
+
+    .tag.gold {
+      color: #7a4d0b;
+      background: var(--gold-soft);
+    }
+
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: -0.035em;
+    }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: 34px;
+    }
+
+    h3 {
+      font-size: 23px;
+    }
+
+    .caption {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .folder {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .file {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.45);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--terracotta);
+    }
+
+    .file:nth-child(2) .dot {
+      background: var(--blue);
+    }
+
+    .file:nth-child(3) .dot {
+      background: var(--sage);
+    }
+
+    .pill {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .anatomy {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 22px;
+      margin-top: 22px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+      padding-left: 22px;
+      border-left: 2px solid rgba(184, 74, 42, 0.22);
+    }
+
+    .event {
+      position: relative;
+      padding: 14px 14px 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .event::before {
+      content: "";
+      position: absolute;
+      left: -29px;
+      top: 18px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--terracotta);
+      box-shadow: 0 0 0 6px var(--paper);
+    }
+
+    .event strong {
+      display: block;
+      margin-bottom: 5px;
+      font-family: var(--mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .event p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .json-card {
+      margin-top: 18px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(39, 76, 103, 0.22);
+      background: #17232b;
+      color: #eaf2f4;
+      box-shadow: 0 18px 48px rgba(20, 33, 42, 0.18);
+    }
+
+    .json-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(234, 242, 244, 0.1);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #a9c0ca;
+    }
+
+    pre {
+      margin: 0;
+      padding: 18px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .blueprint {
+      margin-top: 22px;
+      border: 1px solid rgba(39, 76, 103, 0.22);
+      border-radius: 28px;
+      padding: 28px;
+      background:
+        linear-gradient(rgba(39, 76, 103, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(39, 76, 103, 0.07) 1px, transparent 1px),
+        #eef5f4;
+      background-size: 22px 22px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .metric {
+      padding: 16px;
+      border: 1px solid rgba(39, 76, 103, 0.16);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .metric b {
+      display: block;
+      font-family: var(--serif);
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .takeaway {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .takeaway-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.8);
+    }
+
+    .takeaway-card b {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .takeaway-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100vw - 24px, 760px);
+        padding: 24px 0;
+      }
+
+      .hero,
+      .flow,
+      .anatomy,
+      .metrics,
+      .takeaway {
+        grid-template-columns: 1fr;
+      }
+
+      .step::after {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="panel">
+        <div class="eyebrow">Codex Chat Export · output mental model</div>
+        <h1>One command becomes a readable archive.</h1>
+        <p class="lead">
+          The exporter turns Codex rollout JSONL into a bundle with a human transcript,
+          a full-fidelity machine file, and a small manifest that explains the artifact.
+        </p>
+      </div>
+      <div class="panel command">
+        <small>Run this</small>
+        <code>codex-chat-export --current --bundle ./my-chat-export</code>
+        <small>or with the short alias</small>
+        <code>cexport --last --bundle ./latest-chat</code>
+      </div>
+    </section>
+
+    <section class="flow">
+      <article class="step">
+        <div class="tag">01 · source</div>
+        <h3>Codex rollout JSONL</h3>
+        <p class="caption">
+          The tool reads the canonical local session file under
+          <code>~/.codex/sessions/...</code>. It does not scrape the terminal screen.
+        </p>
+      </article>
+
+      <article class="step">
+        <div class="tag sage">02 · bundle</div>
+        <h3>Export folder</h3>
+        <p class="caption">
+          Bundle mode creates a stable artifact directory instead of one loose file.
+        </p>
+        <div class="folder">
+          <div class="file"><span class="dot"></span><span>chat.md</span><span class="pill">human</span></div>
+          <div class="file"><span class="dot"></span><span>chat.json</span><span class="pill">machine</span></div>
+          <div class="file"><span class="dot"></span><span>manifest.json</span><span class="pill">metadata</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="tag gold">03 · use</div>
+        <h3>Share, inspect, automate</h3>
+        <p class="caption">
+          Read <code>chat.md</code>, feed <code>chat.json</code> into tools, and use
+          <code>manifest.json</code> to know what was exported.
+        </p>
+      </article>
+    </section>
+
+    <section class="anatomy">
+      <article class="panel">
+        <div class="tag">chat.md anatomy</div>
+        <h2>What humans see</h2>
+        <p class="caption">
+          The Markdown file is a chronological transcript. Each Codex event becomes a
+          clear section with a timestamp.
+        </p>
+        <div class="timeline">
+          <div class="event">
+            <strong>User</strong>
+            <p>The prompt or instruction that started a turn.</p>
+          </div>
+          <div class="event">
+            <strong>Reasoning Summary</strong>
+            <p>Persisted summary blocks when Codex stores them.</p>
+          </div>
+          <div class="event">
+            <strong>Commentary</strong>
+            <p>Status updates Codex sent while working.</p>
+          </div>
+          <div class="event">
+            <strong>Tool Call</strong>
+            <p>Structured command/tool arguments rendered as JSON.</p>
+          </div>
+          <div class="event">
+            <strong>Tool Output</strong>
+            <p>Captured output from terminal/tools in fenced text blocks.</p>
+          </div>
+          <div class="event">
+            <strong>Assistant</strong>
+            <p>The final response or explanation returned to the user.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="tag sage">chat.json + manifest</div>
+        <h2>What tools see</h2>
+        <p class="caption">
+          JSON keeps the structured export document and raw rollout lines. Manifest keeps
+          the bundle inventory lightweight.
+        </p>
+        <div class="json-card">
+          <div class="json-title">
+            <span>manifest.json</span>
+            <span>bundle index</span>
+          </div>
+          <pre>{
+  "thread": {
+    "threadId": "019d...",
+    "title": "Build Codex export",
+    "cliVersion": "0.120.0"
+  },
+  "stats": {
+    "rawLineCount": 1796,
+    "entryCount": 958
+  },
+  "files": [
+    { "path": "chat.md", "format": "md" },
+    { "path": "chat.json", "format": "json" },
+    { "path": "manifest.json", "format": "json" }
+  ]
+}</pre>
+        </div>
+      </article>
+    </section>
+
+    <section class="blueprint">
+      <div class="tag">real long-chat example</div>
+      <h2>Scale snapshot from the demo export</h2>
+      <p class="caption">
+        This visual is based on a real export from the current long Codex chat.
+      </p>
+      <div class="metrics">
+        <div class="metric">
+          <b>1.36 MB</b>
+          <span>Markdown transcript</span>
+        </div>
+        <div class="metric">
+          <b>5.92 MB</b>
+          <span>Full JSON export</span>
+        </div>
+        <div class="metric">
+          <b>958</b>
+          <span>Chronological entries</span>
+        </div>
+        <div class="metric">
+          <b>1,796</b>
+          <span>Raw rollout lines</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="takeaway">
+      <article class="takeaway-card">
+        <b><code>chat.md</code> is the story.</b>
+        <p>Best for reading, sharing snippets, reviewing decisions, and understanding what happened.</p>
+      </article>
+      <article class="takeaway-card">
+        <b><code>chat.json</code> is the evidence.</b>
+        <p>Best for downstream tooling, audits, search, importers, and lossless reprocessing.</p>
+      </article>
+      <article class="takeaway-card">
+        <b><code>manifest.json</code> is the label.</b>
+        <p>Best for metadata, file inventory, stats, and future bundle compatibility.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
