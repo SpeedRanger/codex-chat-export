@@ -1,0 +1,50 @@
+name: Publish npm
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run publish checks without uploading to npm"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm audit --audit-level=moderate
+
+      - run: npm test
+
+      - run: npm pack --dry-run
+
+      - name: Publish dry run
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true'
+        run: npm publish --access public --dry-run
+
+      - name: Publish to npm with trusted publishing
+        if: github.event_name == 'release' || inputs.dry_run == 'false'
+        run: npm publish --access public

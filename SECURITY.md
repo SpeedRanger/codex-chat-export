@@ -44,3 +44,10 @@ Primary risk areas:
 - Use `--redact` when preparing exports for public issues, bug reports, docs, or social posts.
 - Use `--include-bootstrap` only when you explicitly need developer or system context.
 - Review generated exports before posting them to public issues, docs, or social media.
+
+## Supply chain
+
+- npm publishing should use Trusted Publishing/OIDC, not long-lived write tokens.
+- Release packages should be built from the public GitHub repository so npm provenance can point back to source.
+- Review `npm pack --dry-run` before publishing.
+- Keep public fixture files sanitized; never commit raw local Codex rollouts.

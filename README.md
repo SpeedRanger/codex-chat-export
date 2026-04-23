@@ -32,6 +32,18 @@ This tool exports:
 
 ## Install
 
+### npm
+
+The package is prepared for npm Trusted Publishing. Until the first npm publish is completed, use the GitHub/source install below.
+
+After npm publish:
+
+```bash
+npx codex-chat-export --last
+npm install -g codex-chat-export
+cexport --last --bundle ./codex-export --redact --no-raw
+```
+
 ### Run locally
 
 ```bash
@@ -93,6 +105,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full companion-layer de
 For a visual walkthrough of the export artifact, see [docs/SHOWCASE.md](docs/SHOWCASE.md).
 
 For rollout schema drift handling and public fixture guidance, see [docs/SCHEMA_COMPATIBILITY.md](docs/SCHEMA_COMPATIBILITY.md).
+
+For secure npm publishing and launch steps, see [docs/NPM_PUBLISHING.md](docs/NPM_PUBLISHING.md) and [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## Security
 
@@ -177,8 +191,9 @@ Current launch target:
 - public GitHub repository
 - tagged GitHub release
 - source install from repo
+- npm Trusted Publishing with provenance
 
-`codex-chat-export` is not published to npm yet.
+`codex-chat-export` is not published to npm yet. The package name is currently available, and the secure publishing workflow is prepared.
 
 ## License
 

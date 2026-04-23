@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- Add npm Trusted Publishing workflow with OIDC and no npm token requirement.
+- Add npm publishing, launch, and demo-output documentation.
+- Add `publishConfig` for public provenance-enabled npm releases.
+- Expand security guidance with supply-chain publishing rules.
+
 ## 0.6.0
 
 - Add public rollout compatibility fixtures for legacy-basic and current-schema-shape rollouts.
