@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Add public rollout compatibility fixtures for legacy-basic and current-schema-shape rollouts.
+- Add `scripts/sanitize-rollout-fixture.mjs` and `npm run fixture:sanitize` for creating safe regression fixtures from real local rollouts.
+- Add schema compatibility docs and README guidance for fixture collection.
+- Extend tests to export/validate public fixture rollouts and verify sanitizer privacy behavior.
+
 ## 0.5.0
 
 - Add `--validate` to emit rollout schema diagnostics as JSON.

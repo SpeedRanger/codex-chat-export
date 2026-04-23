@@ -1,6 +1,6 @@
 {
   "name": "codex-chat-export",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Export full Codex CLI chats from local rollout JSONL into clean markdown, text, or JSON.",
   "type": "module",
   "private": false,
@@ -11,6 +11,7 @@
   "files": [
     "scripts",
     "docs",
+    "test-fixtures",
     "README.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
@@ -21,6 +22,7 @@
   "scripts": {
     "test": "node --test scripts/codex-chat-export.test.mjs",
     "benchmark:large": "node scripts/benchmark-large-rollout.mjs",
+    "fixture:sanitize": "node scripts/sanitize-rollout-fixture.mjs",
     "export:last": "node scripts/codex-chat-export.mjs --last",
     "export:list": "node scripts/codex-chat-export.mjs --list --limit 20"
   },

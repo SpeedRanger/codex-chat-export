@@ -24,6 +24,8 @@ import {
 
 const execFileAsync = promisify(execFile);
 const CLI_PATH = path.resolve("scripts/codex-chat-export.mjs");
+const SANITIZER_PATH = path.resolve("scripts/sanitize-rollout-fixture.mjs");
+const ROLLOUT_FIXTURES_DIR = path.resolve("test-fixtures/rollouts");
 
 function makeRolloutFilename(timestamp, threadId) {
   return `rollout-${timestamp}-${threadId}.jsonl`;
@@ -215,6 +217,22 @@ async function createFixtureHome() {
     namedThreadId,
     archivedThreadId,
   };
+}
+
+async function collectFixtureRolloutPaths(rootDir = ROLLOUT_FIXTURES_DIR) {
+  const paths = [];
+  const entries = await fs.readdir(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      paths.push(...await collectFixtureRolloutPaths(entryPath));
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith(".jsonl")) {
+      paths.push(entryPath);
+    }
+  }
+  return paths.sort();
 }
 
 test("parseTimestampUuidFromFilename parses rollout names", () => {
@@ -460,6 +478,23 @@ test("buildExportDocument reports malformed and unknown rollout schema lines", a
   });
 });
 
+test("public rollout compatibility fixtures export and validate cleanly", async () => {
+  const fixturePaths = await collectFixtureRolloutPaths();
+  assert.ok(fixturePaths.length >= 2);
+
+  for (const fixturePath of fixturePaths) {
+    const document = await buildExportDocument(path.dirname(ROLLOUT_FIXTURES_DIR), fixturePath, {
+      includeRawRolloutLines: false,
+    });
+    const markdown = renderMarkdown(document);
+
+    assert.equal(document.schema.ok, true, fixturePath);
+    assert.equal(document.stats.malformedLineCount, 0, fixturePath);
+    assert.equal(document.stats.rawRolloutLinesIncluded, false, fixturePath);
+    assert.match(markdown, /# Codex Chat Export/);
+  }
+});
+
 test("redactExportDocument masks secrets in entries and raw rollout lines", async () => {
   const fixture = await createFixtureHome();
   const rolloutPath = path.join(
@@ -580,6 +615,87 @@ test("CLI validates selected rollout schema as JSON", async () => {
   assert.equal(report.version, 1);
   assert.equal(report.ok, true);
   assert.deepEqual(report.unknown.responseItemTypes, []);
+});
+
+test("sanitizer preserves rollout shape while removing private content", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "codex-chat-export-sanitize-"));
+  const inputPath = path.join(tempDir, "input.jsonl");
+  const outputPath = path.join(tempDir, "fixture.jsonl");
+  const secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890";
+  const inputLines = [
+    JSON.stringify(buildSessionMeta({
+      threadId: "019d9522-100c-70f3-8a41-6e70be1b917f",
+      timestamp: "2026-04-16T07:12:10.775Z",
+      cwd: "C:\\Users\\AKR\\private-project",
+    })),
+    `not valid json ${secret} C:\\Users\\AKR`,
+    JSON.stringify({
+      type: "response_item",
+      timestamp: "2026-04-16T07:14:08.000Z",
+      payload: {
+        type: "message",
+        role: "assistant",
+        content: [{ type: "output_text", text: `private answer ${secret}` }],
+      },
+    }),
+    JSON.stringify({
+      type: "response_item",
+      timestamp: "2026-04-16T07:14:09.000Z",
+      payload: {
+        type: "function_call",
+        name: "exec_command",
+        arguments: JSON.stringify({
+          cmd: "type C:\\Users\\AKR\\secret.txt",
+          api_key: secret,
+        }),
+      },
+    }),
+    JSON.stringify({
+      type: "event_msg",
+      timestamp: "2026-04-16T07:14:10.000Z",
+      payload: {
+        type: "patch_apply_end",
+        changes: {
+          "C:\\Users\\AKR\\private-project\\secret.txt": {
+            type: "add",
+            content: secret,
+          },
+        },
+      },
+    }),
+  ];
+  await fs.writeFile(inputPath, `${inputLines.join("\n")}\n`, "utf8");
+
+  await execFileAsync(process.execPath, [
+    SANITIZER_PATH,
+    "--input",
+    inputPath,
+    "--output",
+    outputPath,
+  ]);
+
+  const output = await fs.readFile(outputPath, "utf8");
+  assert.doesNotMatch(output, /sk-proj-/);
+  assert.doesNotMatch(output, /C:\\Users\\AKR/);
+  assert.match(output, /\{sanitized malformed jsonl line 2/);
+
+  const validLines = output
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+  assert.equal(validLines[0].type, "session_meta");
+  assert.equal(validLines[0].payload.id, "01900000-0000-7000-8000-000000000001");
+  assert.equal(validLines[2].payload.type, "function_call");
+  assert.match(validLines[2].payload.arguments, /\[sanitized cmd\]/);
+  assert.deepEqual(Object.keys(validLines[3].payload.changes), ["sanitized_key_1"]);
 });
 
 test("CLI writes bundle exports with markdown, JSON, and manifest files", async () => {

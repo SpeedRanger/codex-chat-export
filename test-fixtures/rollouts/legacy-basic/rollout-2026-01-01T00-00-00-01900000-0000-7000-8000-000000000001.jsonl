@@ -1,0 +1,8 @@
+{"type":"session_meta","payload":{"id":"01900000-0000-7000-8000-000000000001","timestamp":"2026-01-01T00:00:00.000Z","cwd":"C:\\codex-chat-export\\fixture","source":"cli","model_provider":"openai","cli_version":"legacy-basic"}}
+{"type":"response_item","timestamp":"2026-01-01T00:00:01.000Z","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"sanitized developer context"}]}}
+{"type":"response_item","timestamp":"2026-01-01T00:00:02.000Z","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"sanitized bootstrap context"}]}}
+{"type":"turn_context"}
+{"type":"response_item","timestamp":"2026-01-01T00:00:03.000Z","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Export this sanitized legacy chat."}]}}
+{"type":"event_msg","timestamp":"2026-01-01T00:00:03.000Z","payload":{"type":"user_message","message":"<user_message>\nExport this sanitized legacy chat."}}
+{"type":"response_item","timestamp":"2026-01-01T00:00:04.000Z","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Sanitized assistant response."}]}}
+{"type":"event_msg","timestamp":"2026-01-01T00:00:05.000Z","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":12,"output_tokens":8,"total_tokens":20}}}}

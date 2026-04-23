@@ -92,6 +92,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full companion-layer de
 
 For a visual walkthrough of the export artifact, see [docs/SHOWCASE.md](docs/SHOWCASE.md).
 
+For rollout schema drift handling and public fixture guidance, see [docs/SCHEMA_COMPATIBILITY.md](docs/SCHEMA_COMPATIBILITY.md).
+
 ## Security
 
 - No network access is required to export local chats.
@@ -126,6 +128,8 @@ The test suite covers:
 - compact JSON without raw rollout lines
 - malformed JSONL accounting
 - rollout schema validation
+- public rollout compatibility fixtures
+- fixture sanitization for real-world schema samples
 - invalid format handling
 - bootstrap rendering gates
 
@@ -146,6 +150,16 @@ npm run benchmark:large -- --turns 1000
 Use `--malformed-interval N` to inject corrupt JSONL lines every `N` turns and verify diagnostics under load. Use `--keep` to preserve the generated fixture for inspection.
 
 Current expectation: listing only reads rollout heads, so it should stay fast even with large sessions. Full JSON intentionally carries parsed raw rollout objects and can be large; use `--no-raw` for compact automation artifacts and `--validate` when you only need schema drift diagnostics.
+
+## Fixture Sanitization
+
+Compatibility fixtures must not contain private chat content. To sanitize a local rollout before adding it as a regression fixture:
+
+```bash
+npm run fixture:sanitize -- --input /path/to/rollout.jsonl --output test-fixtures/rollouts/new-case/rollout-2026-01-03T00-00-00-01900000-0000-7000-8000-000000000003.jsonl
+```
+
+Review sanitized fixtures before committing them. The sanitizer preserves rollout item shape while replacing IDs, timestamps, paths, messages, JSON string payloads, and malformed line text with safe placeholders.
 
 ## Product direction
 

@@ -1,0 +1,35 @@
+{"type":"session_meta","payload":{"id":"01900000-0000-7000-8000-000000000002","timestamp":"2026-01-02T00:00:00.000Z","cwd":"C:\\codex-chat-export\\fixture","source":"cli","model_provider":"openai","cli_version":"current-schema-shapes"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:01.000Z","payload":{"type":"task_started","message":"sanitized task started"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:02.000Z","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"sanitized developer context"}]}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:03.000Z","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"sanitized bootstrap context"}]}}
+{"type":"turn_context"}
+{"type":"response_item","timestamp":"2026-01-02T00:00:04.000Z","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Exercise current Codex rollout shapes."}]}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:04.000Z","payload":{"type":"user_message","message":"<user_message>\nExercise current Codex rollout shapes."}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:05.000Z","payload":{"type":"reasoning","summary":[{"type":"summary_text","text":"sanitized reasoning summary"}]}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:06.000Z","payload":{"type":"agent_reasoning","message":"sanitized agent reasoning"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:07.000Z","payload":{"type":"agent_reasoning_raw_content","message":"sanitized raw reasoning"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:08.000Z","payload":{"type":"agent_message","phase":"commentary","message":"sanitized commentary"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:09.000Z","payload":{"type":"exec_command_begin","command":"sanitized command"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:10.000Z","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"sanitized command\",\"cwd\":\"C:\\\\codex-chat-export\\\\fixture\"}"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:11.000Z","payload":{"type":"exec_command_end","exit_code":0,"duration_ms":1}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:12.000Z","payload":{"type":"function_call_output","call_id":"call_fixture_1","output":{"ok":true,"text":"sanitized output"}}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:13.000Z","payload":{"type":"patch_apply_begin","message":"sanitized patch begin"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:14.000Z","payload":{"type":"patch_apply_end","success":true}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:15.000Z","payload":{"type":"mcp_tool_call_begin","tool_name":"sanitized_mcp_tool"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:16.000Z","payload":{"type":"custom_tool_call","name":"sanitized_mcp_tool","input":{"text":"sanitized input"}}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:17.000Z","payload":{"type":"mcp_tool_call_end","tool_name":"sanitized_mcp_tool","status":"success"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:18.000Z","payload":{"type":"custom_tool_call_output","call_id":"call_fixture_2","output":{"text":"sanitized custom tool output"}}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:19.000Z","payload":{"type":"web_search_begin","query":"sanitized query"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:20.000Z","payload":{"type":"web_search_call","query":"sanitized query"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:21.000Z","payload":{"type":"web_search_end","result_count":1}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:22.000Z","payload":{"type":"tool_search_call","query":"sanitized tool search"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:23.000Z","payload":{"type":"tool_search_output","call_id":"call_fixture_3","output":[{"title":"sanitized result"}]}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:24.000Z","payload":{"type":"local_shell_call","command":["sanitized-command"]}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:25.000Z","payload":{"type":"image_generation_call","prompt":"sanitized image prompt"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:26.000Z","payload":{"type":"context_compacted","message":"sanitized context compacted"}}
+{"type":"compacted","timestamp":"2026-01-02T00:00:27.000Z","payload":{"summary":"sanitized compacted state"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:28.000Z","payload":{"type":"thread_rolled_back","message":"sanitized rollback"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:29.000Z","payload":{"type":"turn_aborted","message":"sanitized abort"}}
+{"type":"response_item","timestamp":"2026-01-02T00:00:30.000Z","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Sanitized assistant response after schema exercise."}]}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:31.000Z","payload":{"type":"task_complete","message":"sanitized task complete"}}
+{"type":"event_msg","timestamp":"2026-01-02T00:00:32.000Z","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"output_tokens":50,"total_tokens":150}}}}
