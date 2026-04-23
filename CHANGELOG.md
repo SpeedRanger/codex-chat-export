@@ -5,6 +5,7 @@
 - Add npm Trusted Publishing workflow with OIDC and no npm token requirement.
 - Add npm publishing, launch, and demo-output documentation.
 - Add `publishConfig` for public provenance-enabled npm releases.
+- Normalize npm `bin` metadata and installed CLI help text.
 - Expand security guidance with supply-chain publishing rules.
 
 ## 0.6.0

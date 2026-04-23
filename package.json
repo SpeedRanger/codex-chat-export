@@ -10,8 +10,8 @@
     "provenance": true
   },
   "bin": {
-    "codex-chat-export": "./scripts/codex-chat-export.mjs",
-    "cexport": "./scripts/codex-chat-export.mjs"
+    "codex-chat-export": "scripts/codex-chat-export.mjs",
+    "cexport": "scripts/codex-chat-export.mjs"
   },
   "files": [
     "scripts",
