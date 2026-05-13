@@ -7,8 +7,9 @@ Codex Chat Export is free. No paid tiers, telemetry, or locked formats.
 - GitHub repo: https://github.com/SpeedRanger/codex-chat-export
 - Latest released tag: `v0.6.0`
 - Next prepared release: `v0.8.0`
-- npm package name: `codex-chat-export` is currently available
-- Distribution blocker: npm Trusted Publishing must be configured on npmjs.com before the first secure publish
+- Current public install path: GitHub tarball install from `main`
+- npm package name: `codex-chat-export`
+- Distribution blocker: first npm publish needs authenticated package ownership/permission before Trusted Publishing can become the steady-state path
 
 ## Launch Checklist
 
@@ -23,6 +24,9 @@ Codex Chat Export is free. No paid tiers, telemetry, or locked formats.
 - [x] Schema validation
 - [x] Sanitized fixture infrastructure
 - [x] Rich persisted event timeline rendering
+- [x] GitHub tarball install smoke test
+- [x] Remote npm publish dry run
+- [x] Remote real publish attempt isolated npm ownership blocker
 - [ ] npm Trusted Publishing configured
 - [ ] First npm publish
 - [ ] README updated with live npm install badge
@@ -39,7 +43,8 @@ It is read-only, local-first, has optional redaction, and includes schema diagno
 Example:
 
 ```bash
-npx codex-chat-export --last --bundle ./codex-export --redact --no-raw
+npm install -g https://github.com/SpeedRanger/codex-chat-export/archive/refs/heads/main.tar.gz
+cexport --last --bundle ./codex-export --redact --no-raw
 ```
 
 ## Support Link

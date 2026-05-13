@@ -35,13 +35,23 @@ This tool exports:
 
 ### npm
 
-The package is prepared for npm Trusted Publishing. Until the first npm publish is completed, use the GitHub/source install below.
+The package is prepared for npm Trusted Publishing. Until the first npm publish is completed, use the GitHub tarball install below.
 
 After npm publish:
 
 ```bash
 npx codex-chat-export --last
 npm install -g codex-chat-export
+cexport --last --bundle ./codex-export --redact --no-raw
+```
+
+### GitHub tarball
+
+This is the current public install path before npm is live:
+
+```bash
+npm install -g https://github.com/SpeedRanger/codex-chat-export/archive/refs/heads/main.tar.gz
+codex-chat-export --last
 cexport --last --bundle ./codex-export --redact --no-raw
 ```
 
@@ -196,11 +206,10 @@ This is designed as a small, sharp utility:
 Current launch target:
 
 - public GitHub repository
-- tagged GitHub release
-- source install from repo
+- GitHub tarball install from repo
 - npm Trusted Publishing with provenance
 
-`codex-chat-export` is not published to npm yet. The package name is currently available, and the secure publishing workflow is prepared.
+`codex-chat-export` is not published to npm yet. GitHub Actions can build, test, pack, dry-run publish, and sign provenance. The real npm publish is blocked at first-package ownership/permission until the package is claimed by an authenticated npm account.
 
 ## License
 

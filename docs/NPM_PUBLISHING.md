@@ -23,6 +23,8 @@ Create or claim the package on npm, then configure its trusted publisher:
 - Workflow filename: `publish-npm.yml`
 - Environment: leave empty unless a protected GitHub environment is configured
 
+First-publish note: npm's `npm trust` command requires the package to already exist on the registry, and the first real GitHub Actions publish attempt for `codex-chat-export@0.8.0` reached npm, signed provenance, then failed with `E404` / "not found or you do not have permission." Treat that as an npm package ownership step, not a repo build failure.
+
 After the first successful trusted publish, set the package publishing access to require two-factor authentication and disallow traditional tokens. npm explicitly recommends this when using trusted publishers.
 
 ## Release Flow
@@ -52,7 +54,7 @@ After the first successful trusted publish, set the package publishing access to
 
 Before the first real publish, run the workflow manually with `dry_run=true`. This verifies the workflow without uploading a package.
 
-To publish manually after npm trusted publisher setup, run the same workflow with `dry_run=false`.
+To publish manually after npm package ownership/trusted publisher setup, run the same workflow with `dry_run=false`.
 
 ## Security Rules
 
