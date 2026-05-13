@@ -5,7 +5,8 @@ Codex Chat Export is free. No paid tiers, telemetry, or locked formats.
 ## Current Position
 
 - GitHub repo: https://github.com/SpeedRanger/codex-chat-export
-- Latest release: `v0.6.0`
+- Latest released tag: `v0.6.0`
+- Next prepared release: `v0.8.0`
 - npm package name: `codex-chat-export` is currently available
 - Distribution blocker: npm Trusted Publishing must be configured on npmjs.com before the first secure publish
 
@@ -21,6 +22,7 @@ Codex Chat Export is free. No paid tiers, telemetry, or locked formats.
 - [x] Redaction mode
 - [x] Schema validation
 - [x] Sanitized fixture infrastructure
+- [x] Rich persisted event timeline rendering
 - [ ] npm Trusted Publishing configured
 - [ ] First npm publish
 - [ ] README updated with live npm install badge

@@ -101,6 +101,24 @@ function buildFixtureLines(threadId, userPrompt, assistantText = "Done.", option
     },
     {
       type: "event_msg",
+      timestamp: "2026-04-16T07:14:03.000Z",
+      payload: {
+        type: "task_started",
+        turn_id: "019d9522-2000-7000-8000-000000000001",
+        model_context_window: 258400,
+        collaboration_mode_kind: "default",
+      },
+    },
+    {
+      type: "event_msg",
+      timestamp: "2026-04-16T07:14:03.500Z",
+      payload: {
+        type: "agent_reasoning",
+        text: "Raw persisted agent reasoning.",
+      },
+    },
+    {
+      type: "event_msg",
       timestamp: commentaryTs,
       payload: {
         type: "agent_message",
@@ -116,6 +134,35 @@ function buildFixtureLines(threadId, userPrompt, assistantText = "Done.", option
         role: "assistant",
         phase: "commentary",
         content: [{ type: "output_text", text: "Inspecting Codex storage." }],
+      },
+    },
+    {
+      type: "event_msg",
+      timestamp: "2026-04-16T07:14:04.500Z",
+      payload: {
+        type: "exec_command_end",
+        call_id: "call_exec_fixture",
+        command: ["dir"],
+        cwd: options.cwd ?? "C:\\fixture",
+        stdout: "file.txt",
+        stderr: "",
+        exit_code: 0,
+        status: "completed",
+      },
+    },
+    {
+      type: "event_msg",
+      timestamp: "2026-04-16T07:14:04.700Z",
+      payload: {
+        type: "patch_apply_end",
+        call_id: "call_patch_fixture",
+        success: true,
+        changes: {
+          "scripts/example.mjs": {
+            type: "modify",
+          },
+        },
+        status: "completed",
       },
     },
     {
@@ -138,6 +185,33 @@ function buildFixtureLines(threadId, userPrompt, assistantText = "Done.", option
         type: "function_call_output",
         call_id: "call_fixture",
         output: { ok: true, files: 3 },
+      },
+    },
+    {
+      type: "event_msg",
+      timestamp: "2026-04-16T07:14:07.000Z",
+      payload: {
+        type: "mcp_tool_call_end",
+        call_id: "call_mcp_fixture",
+        invocation: {
+          server: "fixture",
+          tool: "read",
+          arguments: { id: "safe-fixture" },
+        },
+        result: { Ok: { content: "safe fixture result" } },
+      },
+    },
+    {
+      type: "event_msg",
+      timestamp: "2026-04-16T07:14:07.500Z",
+      payload: {
+        type: "web_search_end",
+        call_id: "call_web_fixture",
+        query: "codex export",
+        action: {
+          type: "search",
+          query: "codex export",
+        },
       },
     },
     {
@@ -396,14 +470,54 @@ test("buildExportDocument keeps structured timeline data and avoids duplicate co
   assert.equal(document.thread.titleSource, "derived_from_first_user_message");
   assert.deepEqual(
     document.entries.map((entry) => entry.kind),
-    ["user", "reasoning", "commentary", "tool_call", "tool_output", "assistant"],
+    [
+      "user",
+      "reasoning",
+      "event",
+      "commentary",
+      "event",
+      "event",
+      "tool_call",
+      "tool_output",
+      "event",
+      "event",
+      "assistant",
+    ],
   );
   assert.equal(document.bootstrap.length, 2);
   assert.equal(document.thread.tokenUsage.total_tokens, 15);
-  assert.equal(document.entries[3].fence, "json");
-  assert.equal(document.entries[4].fence, "json");
+  assert.equal(document.entries[2].eventType, "task_started");
+  assert.equal(document.entries[4].eventType, "exec_command_end");
+  assert.equal(document.entries[6].fence, "json");
+  assert.equal(document.entries[7].fence, "json");
   assert.equal(document.stats.rawRolloutLinesIncluded, true);
   assert.ok(Array.isArray(document.rawRolloutLines));
+});
+
+test("buildExportDocument includes raw internal reasoning events only when requested", async () => {
+  const fixture = await createFixtureHome();
+  const rolloutPath = path.join(
+    fixture.home,
+    "sessions",
+    "2026",
+    "04",
+    "16",
+    makeRolloutFilename("2026-04-16T12-42-10", fixture.activeThreadId),
+  );
+
+  const defaultDocument = await buildExportDocument(fixture.home, rolloutPath);
+  assert.equal(
+    defaultDocument.entries.some((entry) => entry.label === "Agent Reasoning"),
+    false,
+  );
+
+  const fullDocument = await buildExportDocument(fixture.home, rolloutPath, {
+    includeInternalEvents: true,
+  });
+  assert.equal(
+    fullDocument.entries.some((entry) => entry.label === "Agent Reasoning"),
+    true,
+  );
 });
 
 test("buildExportDocument can omit raw rollout lines for compact JSON", async () => {
@@ -537,6 +651,9 @@ test("renderMarkdown includes bootstrap only when requested", async () => {
 
   assert.doesNotMatch(withoutBootstrap, /## Bootstrap Context/);
   assert.match(withBootstrap, /## Bootstrap Context/);
+  assert.match(withoutBootstrap, /### Event: Task Started/);
+  assert.match(withoutBootstrap, /### Event: Shell Command Finished/);
+  assert.doesNotMatch(withoutBootstrap, /### Agent Reasoning/);
 });
 
 test("CLI lists sessions and derives a title for unnamed threads", async () => {

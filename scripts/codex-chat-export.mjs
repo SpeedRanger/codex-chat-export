@@ -146,6 +146,7 @@ async function main() {
       limit: { type: "string", default: "20" },
       "include-archived": { type: "boolean", default: false },
       "include-bootstrap": { type: "boolean", default: false },
+      "include-internal-events": { type: "boolean", default: false },
       redact: { type: "boolean", default: false },
       "no-raw": { type: "boolean", default: false },
       validate: { type: "boolean", default: false },
@@ -177,6 +178,7 @@ async function main() {
     limit: parseInteger(values.limit, 20),
     includeArchived: Boolean(values["include-archived"]),
     includeBootstrap: Boolean(values["include-bootstrap"]),
+    includeInternalEvents: Boolean(values["include-internal-events"]),
     redact: Boolean(values.redact),
     noRaw: Boolean(values["no-raw"]),
     validate: Boolean(values.validate),
@@ -213,6 +215,7 @@ async function main() {
   const target = await resolveTargetSession(options);
   const rawDocument = await buildExportDocument(home, target.rolloutPath, {
     includeBootstrap: options.includeBootstrap,
+    includeInternalEvents: options.includeInternalEvents,
     includeRawRolloutLines: !options.noRaw && !options.validate,
   });
   const document = options.redact

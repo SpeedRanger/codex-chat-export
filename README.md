@@ -26,6 +26,7 @@ This tool exports:
 - reasoning summaries
 - tool calls
 - tool outputs
+- persisted Codex events such as task lifecycle, shell command, patch, MCP, web search, rollback, abort, and compaction events
 - session metadata
 - optional bootstrap context
 - schema diagnostics for malformed or unknown rollout lines
@@ -71,6 +72,7 @@ codex-chat-export --last --validate
 codex-chat-export --list --limit 20
 codex-chat-export --match "billing bug" --format json --output billing-session.json
 codex-chat-export --id 019d9522-100c-70f3-8a41-6e70be1b917f --include-bootstrap
+codex-chat-export --id 019d9522-100c-70f3-8a41-6e70be1b917f --include-internal-events
 codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 ```
 
@@ -91,6 +93,7 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - `--limit N`: row limit for `--list`
 - `--include-archived`: search archived sessions too
 - `--include-bootstrap`: include bootstrap developer/system context in Markdown or text output
+- `--include-internal-events`: include raw internal reasoning event records in the normalized Markdown/text/JSON timeline
 
 ## Design choices
 
@@ -99,6 +102,8 @@ codex-chat-export --id 019d880a-7e8a-7992-a46a-556fa96d12e5 --include-archived
 - The exporter is read-only and never mutates Codex state.
 - Unnamed sessions get a derived title from the first real user turn.
 - Commentary-phase assistant messages are deduplicated against `event_msg.agent_message`.
+- Known persisted Codex events are rendered as timeline entries instead of being silently dropped.
+- Large event payloads are previewed in human exports; full JSON preserves raw rollout lines by default.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full companion-layer decision and phased direction.
 
@@ -115,6 +120,7 @@ For secure npm publishing and launch steps, see [docs/NPM_PUBLISHING.md](docs/NP
 - No secrets are embedded in code.
 - The tool reads only local Codex state and writes only to stdout or an explicit output path.
 - Bootstrap context is excluded from Markdown and text output by default because it may contain large instruction payloads.
+- `--include-internal-events` and `--include-bootstrap` may add large sensitive instruction or reasoning payloads.
 - `--redact` is available for shareable exports, but it is a best-effort safety layer, not a substitute for reviewing sensitive chats.
 
 See [SECURITY.md](SECURITY.md) for disclosure guidance and operational notes.
@@ -134,6 +140,7 @@ The test suite covers:
 - session listing and title derivation
 - fuzzy matching
 - structured tool payload rendering
+- persisted Codex event rendering
 - archived session behavior
 - current-thread export via `CODEX_THREAD_ID`
 - file output

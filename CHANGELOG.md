@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+- Export more persisted Codex event types in Markdown, text, JSON, and bundles.
+- Add first-class timeline entries for task lifecycle, shell command, patch, MCP tool, web search, rollback, abort, compaction, and raw reasoning events.
+- Add `--include-internal-events` so raw internal reasoning event records are available without making default Markdown noisy.
+- Tighten CI to use `npm ci` for lockfile-based installs.
+- Expand tests for richer event timeline rendering.
+
 ## 0.7.0
 
 - Add npm Trusted Publishing workflow with OIDC and no npm token requirement.

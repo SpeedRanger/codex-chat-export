@@ -12,6 +12,7 @@ const USER_MESSAGE_BEGIN = "<user_message>";
 const REDACTION_TOKEN = "[REDACTED]";
 const SCHEMA_SAMPLE_LIMIT = 5;
 const MALFORMED_LINE_PREVIEW_LIMIT = 240;
+const EVENT_PREVIEW_LIMIT = 2000;
 const KNOWN_TOP_LEVEL_TYPES = new Set([
   "compacted",
   "event_msg",
@@ -912,6 +913,193 @@ function formatToolArgs(payload) {
   return formatStructuredValue(payload ?? {});
 }
 
+function titleCaseEventType(type) {
+  return String(type ?? "event")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function compactPayload(payload, omittedKeys = []) {
+  const omitted = new Set(["type", ...omittedKeys]);
+  return Object.fromEntries(
+    Object.entries(payload ?? {}).filter(([key, value]) => {
+      if (omitted.has(key)) {
+        return false;
+      }
+      return value !== undefined && value !== null && value !== "";
+    }),
+  );
+}
+
+function previewValue(value, maxLength = EVENT_PREVIEW_LIMIT) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  if (typeof value === "string") {
+    return truncate(value, maxLength);
+  }
+  return truncate(JSON.stringify(value, null, 2), maxLength);
+}
+
+function summarizeChanges(changes) {
+  if (!changes || typeof changes !== "object" || Array.isArray(changes)) {
+    return null;
+  }
+  return Object.entries(changes).map(([filePath, change]) => ({
+    path: filePath,
+    type: typeof change?.type === "string" ? change.type : "unknown",
+  }));
+}
+
+function shellEventPayload(payload) {
+  return Object.fromEntries(
+    Object.entries({
+      call_id: payload.call_id,
+      turn_id: payload.turn_id,
+      command: payload.command,
+      parsed_cmd: payload.parsed_cmd,
+      cwd: payload.cwd,
+      source: payload.source,
+      status: payload.status,
+      exit_code: payload.exit_code,
+      duration: payload.duration,
+      stdout_preview: previewValue(payload.stdout ?? payload.aggregated_output ?? payload.formatted_output),
+      stderr_preview: previewValue(payload.stderr),
+    }).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
+}
+
+function patchEventPayload(payload) {
+  return Object.fromEntries(
+    Object.entries({
+      call_id: payload.call_id,
+      turn_id: payload.turn_id,
+      auto_approved: payload.auto_approved,
+      status: payload.status,
+      success: payload.success,
+      changes: summarizeChanges(payload.changes),
+      stdout_preview: previewValue(payload.stdout),
+      stderr_preview: previewValue(payload.stderr),
+    }).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
+}
+
+function mcpEventPayload(payload) {
+  return Object.fromEntries(
+    Object.entries({
+      call_id: payload.call_id,
+      invocation: payload.invocation,
+      duration: payload.duration,
+      result_preview: previewValue(payload.result),
+    }).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
+}
+
+function formatTextOrStructuredValue(value) {
+  if (typeof value === "string") {
+    return {
+      text: normalizeWhitespace(value),
+      fence: "text",
+    };
+  }
+  return formatStructuredValue(value);
+}
+
+function buildEventEntry(line, options = {}) {
+  const payload = line.payload ?? {};
+  const eventType = payload.type;
+  const base = {
+    kind: "event",
+    timestamp: line.timestamp ?? null,
+    eventType,
+    label: titleCaseEventType(eventType),
+  };
+
+  switch (eventType) {
+    case "agent_reasoning":
+    case "agent_reasoning_raw_content":
+      if (!options.includeInternalEvents) {
+        return null;
+      }
+      {
+        const formatted = formatTextOrStructuredValue(payload.text ?? payload.content ?? "");
+        return {
+          ...base,
+          kind: "reasoning",
+          label: eventType === "agent_reasoning" ? "Agent Reasoning" : "Agent Reasoning Raw",
+          ...formatted,
+        };
+      }
+
+    case "task_started":
+      return {
+        ...base,
+        text: JSON.stringify(compactPayload(payload), null, 2),
+        fence: "json",
+      };
+
+    case "task_complete":
+      return {
+        ...base,
+        text: JSON.stringify({
+          ...compactPayload(payload, ["last_agent_message"]),
+          last_agent_message_preview: previewValue(payload.last_agent_message),
+        }, null, 2),
+        fence: "json",
+      };
+
+    case "turn_aborted":
+    case "thread_rolled_back":
+    case "context_compacted":
+      return {
+        ...base,
+        text: JSON.stringify(compactPayload(payload), null, 2),
+        fence: "json",
+      };
+
+    case "exec_command_begin":
+    case "exec_command_end":
+      return {
+        ...base,
+        label: eventType === "exec_command_begin" ? "Shell Command Started" : "Shell Command Finished",
+        text: JSON.stringify(shellEventPayload(payload), null, 2),
+        fence: "json",
+      };
+
+    case "mcp_tool_call_begin":
+    case "mcp_tool_call_end":
+      return {
+        ...base,
+        label: eventType === "mcp_tool_call_begin" ? "MCP Tool Started" : "MCP Tool Finished",
+        text: JSON.stringify(mcpEventPayload(payload), null, 2),
+        fence: "json",
+      };
+
+    case "patch_apply_begin":
+    case "patch_apply_end":
+      return {
+        ...base,
+        label: eventType === "patch_apply_begin" ? "Patch Apply Started" : "Patch Apply Finished",
+        text: JSON.stringify(patchEventPayload(payload), null, 2),
+        fence: "json",
+      };
+
+    case "web_search_begin":
+    case "web_search_end":
+      return {
+        ...base,
+        label: eventType === "web_search_begin" ? "Web Search Started" : "Web Search Finished",
+        text: JSON.stringify(compactPayload(payload), null, 2),
+        fence: "json",
+      };
+
+    default:
+      return null;
+  }
+}
+
 function buildFilteredEntries(lines, options = {}) {
   const includeBootstrap = Boolean(options.includeBootstrap);
   const includeCommentary = options.includeCommentary !== false;
@@ -1024,6 +1212,16 @@ function buildFilteredEntries(lines, options = {}) {
           phase: line.payload.phase ?? null,
           text,
         });
+      }
+      continue;
+    }
+
+    if (line.type === "event_msg") {
+      const eventEntry = buildEventEntry(line, {
+        includeInternalEvents: Boolean(options.includeInternalEvents),
+      });
+      if (eventEntry?.text) {
+        entries.push(eventEntry);
       }
     }
   }
@@ -1139,7 +1337,21 @@ export function renderMarkdown(document, options = {}) {
       continue;
     }
     if (entry.kind === "reasoning") {
-      lines.push(renderEntryHeading(3, "Reasoning Summary", entry.timestamp), "", entry.text, "");
+      lines.push(
+        renderEntryHeading(3, entry.label ?? "Reasoning Summary", entry.timestamp),
+        "",
+        entry.text,
+        "",
+      );
+      continue;
+    }
+    if (entry.kind === "event") {
+      lines.push(
+        renderEntryHeading(3, `Event: ${entry.label}`, entry.timestamp),
+        "",
+        markdownFence(entry.fence ?? "text", entry.text),
+        "",
+      );
       continue;
     }
     if (entry.kind === "tool_call") {
@@ -1262,6 +1474,7 @@ export function usageText() {
     "  --limit N                Limit rows for --list or --match scan (default: 20)",
     "  --include-archived       Include archived sessions in scans and lookup",
     "  --include-bootstrap      Include developer/system/bootstrap context in export",
+    "  --include-internal-events Include raw internal reasoning event records in the normalized timeline",
     "  --redact                 Redact common secrets and local paths from exported content",
     "  --no-raw                 Omit rawRolloutLines from JSON output and bundles",
     "  --validate               Print selected rollout schema diagnostics as JSON",
